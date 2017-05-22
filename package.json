@@ -1,0 +1,41 @@
+{
+  "name": "ebay-emails",
+  "version": "1.0.0",
+  "description": "Sales cycle automated transactional emails for customer follow up",
+  "author": "Make It Count LLC <mike@makeitcount.cc>",
+  "scripts": {
+    "test": "vows --spec --isolate",
+    "start": "node src/app.js | bunyan",
+    "predeploy": "echo im about to deploy",
+    "postdeploy": "echo ive deployed",
+    "prepublish": "coffee --bare --compile --output lib/foo src/foo/*.coffee"
+  },
+  "main": "src/app.js",
+  "repository": {
+    "type": "git",
+    "url": ""
+  },
+  "dependencies": {
+    "bunyan": "^1.8.10",
+    "express": "^4.15.3",
+    "express-jwt": "^5.3.0",
+    "jsonwebtoken": "^7.4.1",
+    "lodash.defaultsdeep": "^4.6.0",
+    "morgan": "^1.8.1",
+    "mysql2": "^1.2.0",
+    "sequelize": "^3.30.4",
+    "sequelize-cli": "^2.7.0",
+    "sqlite3": "^3.1.8"
+  },
+  "devDependencies": {
+    "eslint": "^3.19.0",
+    "eslint-config-airbnb": "^15.0.1",
+    "eslint-plugin-import": "^2.2.0",
+    "eslint-plugin-jsx-a11y": "^5.0.3",
+    "eslint-plugin-react": "^7.0.1",
+    "nodemon": "^1.11.0"
+  },
+  "preferGlobal": true,
+  "private": true,
+  "license": "MIT"
+}
