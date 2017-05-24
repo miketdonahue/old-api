@@ -1,33 +1,43 @@
 const jwt = require('jsonwebtoken');
-const config = require('../../config/default');
+const config = require('config');
+const logger = require('md-logger');
 
-function verifyJwt() {
-  return (req, res, next) => {
-    jwt.verify(token, config.secrets.jwt, (err, code) => {
-      var token = getTokenFromHeader(req.headers);
-
-
-    });
-  };
-}
+// TODO: Want to implement refresh token?
 
 function getTokenFromHeader(headers) {
-  var parts = headers.authorization.split(' ');
-  var token;
+  const headerParts = (headers.authorization && headers.authorization.split(' ')) || [];
+  let token;
 
-  if (parts.length === 2) {
-    var scheme = parts[0];
-    var credentials = parts[1];
+  if (headerParts.length === 2) {
+    const scheme = headerParts[0];
+    const credentials = headerParts[1];
 
     if (/^Bearer$/i.test(scheme)) {
       token = credentials;
-      return next();
-    } else {
-      return next({code: 'UNAUTHORIZED', message: '401'});
     }
   }
+
+  return token;
 }
 
-module.exports = {
-  verifyJwt,
-};
+function verifyJwt(options) {
+  return (req, res, next) => {
+    if (!options.skipPaths.includes(req.path)) {
+      const token = getTokenFromHeader(req.headers);
+
+      jwt.verify(token, config.jwt.secret, (err, decoded) => {
+        if (err) {
+          next(err);
+        } else {
+          logger.info('VERIFY-JWT-MIDDLEWARE: Returning decoded token');
+          next(null, decoded);
+        }
+      });
+    } else {
+      logger.info('VERIFY-JWT-MIDDLEWARE: Skipping JWT verification based on skipPaths');
+      next();
+    }
+  };
+}
+
+module.exports = verifyJwt;

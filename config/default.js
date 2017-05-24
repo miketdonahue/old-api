@@ -1,29 +1,12 @@
-/* eslint-disable global-require */
-const defaultsDeep = require('lodash.defaultsdeep');
+const db = require('./databases');
 
-const config = {
-  port: process.env.PORT || 8080,
-  secrets: {
-    jwt: 'secret',
+module.exports = {
+  server: {
+    port: process.env.PORT || 8080,
   },
-  expireTime: 60,
+  jwt: {
+    secret: process.env.JWT_SECRET,
+    expireTime: '1h',
+  },
+  database: db.development,
 };
-
-config.env = process.env.NODE_ENV || 'development';
-
-let envConfig;
-switch (config.env) {
-  case 'development':
-    envConfig = require('./development.js') || {};
-    break;
-  case 'test':
-    envConfig = require('./development.js') || {};
-    break;
-  case 'production':
-    envConfig = require('./development.js') || {};
-    break;
-  default:
-    break;
-}
-
-module.exports = defaultsDeep(config, envConfig);
