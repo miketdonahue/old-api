@@ -6,7 +6,7 @@ const md5 = require('md5');
 const ServiceError = require('verror');
 const formatError = require('md-error-formatter');
 const emailClient = require('md-mailer');
-const User = require('../../models/user.js');
+const User = require('../../../models').user;
 
 /**
  * Example documentation.

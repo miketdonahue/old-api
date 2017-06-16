@@ -1,6 +1,6 @@
 module.exports = {
   up(queryInterface, Sequelize) {
-    queryInterface.createTable('Users', {
+    queryInterface.createTable('users', {
       id: {
         allowNull: false,
         autoIncrement: true,
@@ -67,11 +67,11 @@ module.exports = {
       },
     });
 
-    queryInterface.addIndex('Users', ['short_id', 'email', 'confirmed_token', 'reset_password_token'], {
+    queryInterface.addIndex('users', ['short_id', 'email', 'confirmed_token', 'reset_password_token'], {
       indicesType: 'UNIQUE',
     });
   },
   down(queryInterface) {
-    return queryInterface.dropTable('Users');
+    return queryInterface.dropTable('users');
   },
 };

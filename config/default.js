@@ -9,4 +9,5 @@ module.exports = {
     expireTime: '1h',
   },
   database: db.development,
+  sqlLogging: console.log,
 };

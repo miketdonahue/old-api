@@ -1,0 +1,15 @@
+{
+  "restartable": "rs",
+  "ignoreRoot": [
+    ".git"
+  ],
+  "verbose": true,
+  "watch": [
+    "config/",
+    "migration/",
+    "public/",
+    "seeders/",
+    "src/"
+  ],
+  "ext": "js json"
+}

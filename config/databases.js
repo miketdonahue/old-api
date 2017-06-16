@@ -6,10 +6,10 @@ module.exports = {
     host: '127.0.0.1',
     dialect: 'mysql',
   },
-  test: {
+  testing: {
     username: 'root',
     password: 'password',
-    database: 'ebay_test',
+    database: 'ebay_testing',
     host: '127.0.0.1',
     dialect: 'mysql',
   },

@@ -4,8 +4,6 @@ const morgan = require('morgan');
 const cors = require('cors');
 const bodyParser = require('body-parser');
 const cookieParser = require('cookie-parser');
-// TODO: Turn this on when you have a client and test
-// const csrf = require('csurf');
 const helmet = require('helmet');
 const config = require('config');
 const logger = require('md-logger');
@@ -16,6 +14,7 @@ const app = express();
 const baseUrl = '/api';
 
 // Global middleware
+app.use('/public', express.static('public'));
 app.use(helmet());
 app.use(morgan(morganJson({
   date: ':date[clf]',
@@ -31,7 +30,6 @@ app.use(morgan(morganJson({
   url: ':url',
   userAgent: ':user-agent',
 })));
-// app.use(csrf({ cookie: true }));
 app.use(cookieParser());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
@@ -43,12 +41,10 @@ app.use(cors({
 // Route middleware
 const verifyJwt = require('./middleware/verify-jwt');
 const authRoutes = require('./api/auth/routes');
+const swaggerRoutes = require('./api/swagger/routes');
 
-app.use(verifyJwt({ skipPaths: [
-  `${baseUrl}/auth/signup`, `${baseUrl}/auth/login`, `${baseUrl}/auth/confirm-account`,
-  `${baseUrl}/auth/forgot-password`, `${baseUrl}/auth/reset-password`],
-}));
 app.use(`${baseUrl}/auth`, authRoutes);
+app.use(`${baseUrl}/swagger`, swaggerRoutes);
 
 // Handle unknown routes a.k.a. 404s
 app.use((req, res, next) => { // eslint-disable-line no-unused-vars
