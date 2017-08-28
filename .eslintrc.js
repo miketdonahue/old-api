@@ -1,11 +1,14 @@
 module.exports = {
-    "extends": "airbnb",
-    "plugins": [
-        "react",
-        "jsx-a11y",
-        "import"
-    ],
-    "rules": {
-        "import/no-extraneous-dependencies": 0
-    }
+  "extends": "airbnb-base",
+  "plugins": [
+      "import"
+  ],
+  "rules": {
+    "import/no-extraneous-dependencies": ["error", {"packageDir": "./package.json"}]
+  },
+  "env": {
+    "es6": true,
+    "node": true,
+    "mocha": true
+  }
 };

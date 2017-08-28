@@ -1,6 +1,6 @@
 const jwt = require('jsonwebtoken');
 const config = require('config');
-const logger = require('md-logger');
+const logger = require('local-logger');
 
 // TODO: Want to implement refresh token?
 

@@ -2,21 +2,21 @@ module.exports = {
   development: {
     username: 'root',
     password: 'password',
-    database: 'ebay_development',
+    database: 'teach_development',
     host: '127.0.0.1',
     dialect: 'mysql',
   },
-  testing: {
+  test: {
     username: 'root',
     password: 'password',
-    database: 'ebay_testing',
+    database: 'teach_test',
     host: '127.0.0.1',
     dialect: 'mysql',
   },
   production: {
     username: 'root',
     password: 'password',
-    database: 'ebay_production',
+    database: 'teach_production',
     host: '127.0.0.1',
     dialect: 'mysql',
   },

@@ -6,9 +6,9 @@ const bodyParser = require('body-parser');
 const cookieParser = require('cookie-parser');
 const helmet = require('helmet');
 const config = require('config');
-const logger = require('md-logger');
 const ServiceError = require('verror');
-const formatError = require('md-error-formatter');
+const formatError = require('local-error-formatter');
+const logger = require('local-logger');
 
 const app = express();
 const baseUrl = '/api';
@@ -39,7 +39,7 @@ app.use(cors({
 }));
 
 // Route middleware
-const verifyJwt = require('./middleware/verify-jwt');
+// const verifyJwt = require('./middleware/verify-jwt');
 const authRoutes = require('./api/auth/routes');
 const swaggerRoutes = require('./api/swagger/routes');
 
