@@ -5,25 +5,33 @@ const momentDate = require('moment');
 const md5 = require('md5');
 const ServiceError = require('verror');
 const formatError = require('local-error-formatter');
-// const emailClient = require('local-mailer');
+const emailClient = require('local-mailer');
 const User = require('../../models/user');
 
 /**
- * Example documentation.
+ * User signup flow
+ *
+ * @description Creates a new user; Sends confirmation email
  * @function
+ * @param {Object} req - HTTP request
+ * @param {Object} res - HTTP response
+ * @returns {Object} - JSON response {status, data}
  */
 const signup = (req, res) => {
   User.findOne({ where: { email: req.body.email } })
     .then((user) => {
       if (!user) {
+        logger.info('AUTH-CTRL.SIGNUP: Creating new user');
+
         return User.create({
           email: req.body.email,
-          name: req.body.name,
+          first_name: req.body.firstName,
+          last_name: req.body.lastName,
           password: req.body.password,
-          last_visit: momentDate().utc(),
+          last_visit: momentDate(),
           ip: req.ip,
         }, {
-          fields: ['short_id', 'name', 'email', 'password', 'last_visit', 'ip', 'confirmed_token', 'confirmed_expires'],
+          fields: ['uid', 'first_name', 'last_name', 'email', 'password', 'last_visit', 'ip', 'confirmed_token', 'confirmed_expires'],
         });
       }
 
@@ -31,16 +39,12 @@ const signup = (req, res) => {
     })
     .then((user) => {
       if (user) {
-      // TODO: This works, but abstract it into the module
-      // Unverified accounts should be removed after 2 weeks
-      // Internal operation, so we log error and get alerts on logs
-      // instead of sending back to client
-      // emailClient.sendConfirmMail(user);
+        emailClient.sendConfirmMail(user);
 
-        logger.info('AUTH-CTRL: User created');
+        logger.info({ uid: user.uid }, 'AUTH-CTRL.SIGNUP: User created');
         return res.status(201).json({
           status: 'success',
-          data: { user: { id: user.short_id } },
+          data: { user: { id: user.uid } },
         });
       }
 
@@ -58,22 +62,27 @@ const signup = (req, res) => {
     .catch((err) => {
       const error = formatError(err);
 
-      logger.error({ error, err: error.stack }, `AUTH-CTRL: ${error.message}`);
+      logger.error({ error, err: error.stack }, `AUTH-CTRL.SIGNUP: ${error.message}`);
       return res.status(error.jse_info.statusCode).json(error.jse_info.jsonResponse());
     });
 };
 
 /**
- * Example documentation.
+ * User confirm account flow
+ *
+ * @description Ensures token not expired; Updates token attributes; Logs in user
  * @function
+ * @param {Object} req - HTTP request
+ * @param {Object} res - HTTP response
+ * @returns {Object} - JSON response {status, data}
  */
 const confirmAccount = (req, res) => {
-  const confirmToken = req.query.confirmToken;
+  const { confirmToken } = req.query;
 
   User.findOne({ where: { confirmed_token: confirmToken } })
     .then((obj) => {
       const user = obj;
-      const tokenExpired = user && user.confirmed_expires < momentDate().utc();
+      const tokenExpired = user && user.confirmed_expires < momentDate();
 
       if (!user || tokenExpired) {
         const serviceError = new ServiceError({
@@ -83,12 +92,12 @@ const confirmAccount = (req, res) => {
             statusText: 'fail',
             data: { user: 'A user does not exist for the given token or token expired' },
           },
-        }, 'No user found with given token or token expired');
+        }, `No user found with given token or token expired: ${user.uid}`);
 
         throw (serviceError);
       }
 
-      logger.info('AUTH-CTRL: Updating user');
+      logger.info({ uid: user.uid }, 'AUTH-CTRL.CONFIRM-ACCOUNT: Confirming user\'s account');
 
       user.confirmed = true;
       user.confirmed_token = null;
@@ -96,36 +105,42 @@ const confirmAccount = (req, res) => {
       return user.save(['confirmed', 'confirmed_token', 'confirmed_expires']);
     })
     .then((updatedUser) => {
+      logger.info({ uid: updatedUser.uid }, 'AUTH-CTRL.CONFIRM-ACCOUNT: Account was confirmed');
+
       jwt.sign({
-        id: updatedUser.short_id,
+        id: updatedUser.uid,
       },
       config.jwt.secret,
       { expiresIn: config.jwt.expireTime }, (e, token) => {
         if (e) {
           const error = formatError(e);
 
-          logger.error({ error, err: error.stack }, `AUTH-CTRL: ${error.message}`);
+          logger.error({ error, err: error.stack }, `AUTH-CTRL.CONFIRM-ACCOUNT: ${error.message}`);
           return res.status(error.jse_info.statusCode).json(error.jse_info.jsonResponse());
         }
 
-        // Send out the welcome email
+        emailClient.sendWelcomeMail(updatedUser);
 
-        logger.info('AUTH-CTRL: Logging in user');
+        logger.info({ uid: updatedUser.uid }, 'AUTH-CTRL.CONFIRM-ACCOUNT: Logging in user');
         return res.json({ status: 'success', data: { token } });
       });
     })
     .catch((err) => {
       const error = formatError(err);
 
-      logger.error({ error, err: error.stack }, `AUTH-CTRL: ${error.message}`);
+      logger.error({ error, err: error.stack }, `AUTH-CTRL.CONFIRM-ACCOUNT: ${error.message}`);
       return res.status(error.jse_info.statusCode).json(error.jse_info.jsonResponse());
     });
 };
 
-
 /**
- * Example documentation.
+ * User login flow
+ *
+ * @description Ensures user is confirmed; Checks credentials; Updates attributes; Logs in the user
  * @function
+ * @param {Object} req - HTTP request
+ * @param {Object} res - HTTP response
+ * @returns {Object} - JSON response {status, data}
  */
 const login = (req, res) => {
   User.findOne({ where: { email: req.body.email } })
@@ -140,11 +155,12 @@ const login = (req, res) => {
             statusText: 'fail',
             data: { email: (!user) ? 'Email does not exist' : 'Email is not confirmed' },
           },
-        }, 'Email does not exist or user email is not confirmed');
+        }, `Email does not exist or user email is not confirmed: ${user.uid}`);
 
         throw (serviceError);
       }
 
+      logger.info({ uid: user.uid }, 'AUTH-CTRL.LOGIN: Found user');
       return user;
     })
     .then((obj) => {
@@ -160,44 +176,51 @@ const login = (req, res) => {
                 statusText: 'fail',
                 data: { password: 'Password does not match' },
               },
-            }, 'User password does not match DB');
+            }, `User password does not match DB: ${user.uid}`);
 
             throw (serviceError);
           }
 
-          user.last_visit = momentDate().utc();
+          logger.info({ uid: user.uid }, 'AUTH-CTRL.LOGIN: Updating user attributes');
+
+          user.last_visit = momentDate();
           user.ip = req.ip;
           return user.save(['last_visit', 'ip']);
         });
     })
     .then((updatedUser) => {
       jwt.sign({
-        id: updatedUser.short_id,
+        id: updatedUser.uid,
       },
       config.jwt.secret,
       { expiresIn: config.jwt.expireTime }, (e, token) => {
         if (e) {
           const error = formatError(e);
 
-          logger.error({ error, err: error.stack }, `AUTH-CTRL: ${error.message}`);
+          logger.error({ error, err: error.stack }, `AUTH-CTRL.LOGIN: ${error.message}`);
           return res.status(error.jse_info.statusCode).json(error.jse_info.jsonResponse());
         }
 
-        logger.info('AUTH-CTRL: Logging in user');
+        logger.info({ uid: updatedUser.uid }, 'AUTH-CTRL.LOGIN: Logging in user');
         return res.json({ status: 'success', data: { token } });
       });
     })
     .catch((err) => {
       const error = formatError(err);
 
-      logger.error({ error, err: error.stack }, `AUTH-CTRL: ${error.message}`);
+      logger.error({ error, err: error.stack }, `AUTH-CTRL.LOGIN: ${error.message}`);
       return res.status(error.jse_info.statusCode).json(error.jse_info.jsonResponse());
     });
 };
 
 /**
- * Example documentation.
+ * User forgot password flow
+ *
+ * @description Ensure user is confirmed; Generate reset password attributes; Send email
  * @function
+ * @param {Object} req - HTTP request
+ * @param {Object} res - HTTP response
+ * @returns {Object} - JSON response {status, data}
  */
 const forgotPassword = (req, res) => {
   User.findOne({ where: { email: req.body.email } })
@@ -212,48 +235,52 @@ const forgotPassword = (req, res) => {
             statusText: 'fail',
             data: { email: (!user) ? 'Email does not exist' : 'Email is not confirmed' },
           },
-        }, 'Email does not exist or user email is not confirmed');
+        }, `Email does not exist or user email is not confirmed: ${user.uid}`);
 
         throw (serviceError);
       }
 
+      logger.info({ uid: user.uid }, 'AUTH-CTRL.FORGOT-PASSWORD: Found user');
       return user;
     })
     .then((obj) => {
       const user = obj;
 
-      user.reset_password_token = md5(user.password + Math.random());
-      user.reset_password_expires = momentDate().utc().add(1, 'h');
+      logger.info({ uid: user.uid }, 'AUTH-CTRL.FORGOT-PASSWORD: Updating user attributes');
 
+      user.reset_password_token = md5(user.password + Math.random());
+      user.reset_password_expires = momentDate().add(config.tokens.passwordReset.expireTime, 'h');
       return user.save(['reset_password_token', 'reset_password_expires'])
         .then((updatedUser) => {
-          logger.info('AUTH-CTRL: Password reset token and expire date set');
+          emailClient.sendResetPasswordMail(user);
 
-          // Send out reset password email
-          // emailClient.sendResetPasswordMail(user);
-
-          return res.json({ status: 'success', data: { user: { id: updatedUser.short_id } } });
+          return res.json({ status: 'success', data: { user: { id: updatedUser.uid } } });
         });
     })
     .catch((err) => {
       const error = formatError(err);
 
-      logger.error({ error, err: error.stack }, `AUTH-CTRL: ${error.message}`);
+      logger.error({ error, err: error.stack }, `AUTH-CTRL.FORGOT-PASSWORD: ${error.message}`);
       return res.status(error.jse_info.statusCode).json(error.jse_info.jsonResponse());
     });
 };
 
 /**
- * Example documentation.
+ * User reset password flow
+ *
+ * @description Ensure token not expired; Rehash the new password
  * @function
+ * @param {Object} req - HTTP request
+ * @param {Object} res - HTTP response
+ * @returns {Object} - JSON response {status, data}
  */
 const resetPassword = (req, res) => {
-  const resetPasswordToken = req.query.resetPasswordToken;
+  const { resetPasswordToken } = req.query;
 
   User.findOne({ where: { reset_password_token: resetPasswordToken } })
     .then((obj) => {
       const user = obj;
-      const tokenExpired = user && user.reset_password_expires < momentDate().utc();
+      const tokenExpired = user && user.reset_password_expires < momentDate();
 
       if (!user || tokenExpired) {
         const serviceError = new ServiceError({
@@ -263,7 +290,7 @@ const resetPassword = (req, res) => {
             statusText: 'fail',
             data: { user: 'A user does not exist for the given token or token expired' },
           },
-        }, 'No user found with given token or token expired');
+        }, `No user found with given token or token expired: ${user.uid}`);
 
         throw (serviceError);
       }
@@ -273,30 +300,43 @@ const resetPassword = (req, res) => {
     .then((obj) => {
       const user = obj;
 
-      return user.hashPassword(req.body.password)
-        .then((hash) => {
-          user.password = hash;
-          user.reset_password_token = null;
-          user.reset_password_expires = null;
+      logger.info({ uid: user.uid }, 'AUTH-CTRL.RESET-PASSWORD: Updating user attributes');
 
-          return user.save(['password', 'reset_password_token', 'reset_password_expires']);
+      return user.comparePassword(req.body.password)
+        .then((passwordMatch) => {
+          if (passwordMatch) return ({ user, passwordMatch });
+
+          return user;
         });
     })
-    .then((updatedUser) => {
-      logger.info('AUTH-CTRL: User password has been reset');
+    .then((obj) => {
+      const user = obj;
 
-      return res.json({ status: 'success', data: { user: { id: updatedUser.short_id } } });
+      if (!user.passwordMatch) {
+        return user.hashPassword(req.body.password)
+          .then((hash) => {
+            user.password = hash;
+            user.reset_password_token = null;
+            user.reset_password_expires = null;
+            return user.save(['password', 'reset_password_token', 'reset_password_expires']);
+          });
+      }
+
+      user.reset_password_token = null;
+      user.reset_password_expires = null;
+      return user.save(['password', 'reset_password_token', 'reset_password_expires']);
+    })
+    .then((updatedUser) => {
+      logger.info({ uid: updatedUser.uid }, 'AUTH-CTRL.RESET-PASSWORD: User password has been reset');
+      return res.json({ status: 'success', data: { user: { id: updatedUser.uid } } });
     })
     .catch((err) => {
       const error = formatError(err);
 
-      logger.error({ error, err: error.stack }, `AUTH-CTRL: ${error.message}`);
+      logger.error({ error, err: error.stack }, `AUTH-CTRL.RESET-PASSWORD: ${error.message}`);
       return res.status(error.jse_info.statusCode).json(error.jse_info.jsonResponse());
     });
 };
-
-// TODO: User needs to be able to edit their info (change password, etc) and delete account
-// Do this in a profile route
 
 module.exports = {
   signup,

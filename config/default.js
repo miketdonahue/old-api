@@ -8,6 +8,15 @@ module.exports = {
     secret: process.env.JWT_SECRET,
     expireTime: '1h',
   },
+  transactionalEmails: true,
+  tokens: {
+    passwordReset: {
+      expireTime: 2, // time in hours
+    },
+    confirmed: {
+      expireTime: 2, // time in hours
+    },
+  },
   database: db.development,
   sqlLogging: console.log, // eslint-disable-line no-console
 };

@@ -1,5 +1,6 @@
 const bcrypt = require('bcrypt');
 const shortId = require('shortid');
+const config = require('config');
 const logger = require('local-logger');
 const md5 = require('md5');
 const momentDate = require('moment');
@@ -9,7 +10,7 @@ const v = require('local-validations');
 const { sequelize, DataTypes } = require('./index.js');
 
 const User = sequelize.define('user', {
-  short_id: {
+  uid: {
     type: DataTypes.STRING,
     allowNull: false,
     unique: true,
@@ -20,7 +21,19 @@ const User = sequelize.define('user', {
       v.suspicious(value);
     },
   },
-  name: {
+  first_name: {
+    type: DataTypes.STRING,
+    allowNull: false,
+    validate: {
+      required: (value) => {
+        v.required(value);
+      },
+      suspicious: (value) => {
+        v.suspicious(value);
+      },
+    },
+  },
+  last_name: {
     type: DataTypes.STRING,
     allowNull: false,
     validate: {
@@ -60,7 +73,7 @@ const User = sequelize.define('user', {
   },
   last_visit: {
     type: DataTypes.DATE,
-    allowNull: true,
+    allowNull: false,
     validate: {
       isDate: true,
       suspicious: (value) => {
@@ -71,6 +84,7 @@ const User = sequelize.define('user', {
   ip: {
     type: DataTypes.STRING,
     allowNull: true,
+    defaultValue: null,
     validate: {
       isIP: true,
       suspicious: (value) => {
@@ -95,6 +109,7 @@ const User = sequelize.define('user', {
   confirmed_token: {
     type: DataTypes.STRING,
     allowNull: true,
+    defaultValue: null,
     validate: {
       len: 32,
       suspicious: (value) => {
@@ -138,27 +153,20 @@ const User = sequelize.define('user', {
   underscored: true,
   deletedAt: 'deleted_at',
   paranoid: true,
-}, {
-  indexes: [
-    {
-      unique: true,
-      fields: ['short_id', 'email', 'confirmed_token', 'reset_password_token'],
-    },
-  ],
 });
 
 // Methods
 User.prototype.hashPassword = password => bcrypt.hash(password, 10).then(hash => hash);
 
-User.prototype.comparePassword = userPassword => (
-  bcrypt.compare(userPassword, this.password).then(isMatch => isMatch)
-);
+User.prototype.comparePassword = function comparePassword(userPassword) {
+  return bcrypt.compare(userPassword, this.password).then(isMatch => isMatch);
+};
 
 // Hooks
 User.beforeValidate((obj, options) => {
   const user = obj;
 
-  user.short_id = shortId.generate();
+  if (user._options.isNewRecord) user.uid = shortId.generate();
   return sequelize.Promise.resolve(options);
 });
 
@@ -177,13 +185,11 @@ User.afterValidate('sanitize', (obj, options) => {
 User.beforeCreate((obj, options) => {
   const user = obj;
 
-  // Update their documentation with a PR for this
-  // It is only for async calls. Promises instead of callbacks
   return new Promise((resolve, reject) => {
     bcrypt.hash(user.password, 10, (err, hash) => {
       if (err) {
         logger.error({
-          id: user.short_id,
+          id: user.uid,
         }, 'MODEL.beforeCreate: Password hash failure');
 
         return reject(err);
@@ -191,7 +197,7 @@ User.beforeCreate((obj, options) => {
 
       user.password = hash;
       user.confirmed_token = md5(user.email + Math.random());
-      user.confirmed_expires = momentDate().utc().add(2, 'h');
+      user.confirmed_expires = momentDate().add(config.tokens.confirmed.expireTime, 'h');
 
       return resolve(options);
     });

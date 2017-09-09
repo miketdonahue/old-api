@@ -39,12 +39,18 @@ app.use(cors({
 }));
 
 // Route middleware
-// const verifyJwt = require('./middleware/verify-jwt');
-const authRoutes = require('./api/auth/routes');
-const swaggerRoutes = require('./api/swagger/routes');
+const verifyJwt = require('./middleware/verify-jwt');
+const authRoutes = require('./api/auth/auth-routes');
+const userRoutes = require('./api/users/users-routes');
+const mailerRoutes = require('./api/mailer/mailer-routes');
+const swaggerRoutes = require('./api/swagger/swagger-routes');
 
+// TODO: Add verifyJwt() to routes
 app.use(`${baseUrl}/auth`, authRoutes);
-app.use(`${baseUrl}/swagger`, swaggerRoutes);
+app.use(`${baseUrl}/users`, userRoutes);
+app.use(`${baseUrl}/mailer`, mailerRoutes);
+// app.use(`${baseUrl}/users`, verifyJwt(), userRoutes);
+app.use(`${baseUrl}/swagger`, verifyJwt(), swaggerRoutes);
 
 // Handle unknown routes a.k.a. 404s
 app.use((req, res, next) => { // eslint-disable-line no-unused-vars

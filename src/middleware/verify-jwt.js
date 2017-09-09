@@ -4,6 +4,14 @@ const logger = require('local-logger');
 
 // TODO: Want to implement refresh token?
 
+/**
+ * Retrieve the Bearer authorization token from the header
+ *
+ * @description Formats application errors according to type
+ * @function
+ * @param {Object} error - Express.js err
+ * @returns {Object} - Formatted error object to be passed to local-logger
+ */
 function getTokenFromHeader(headers) {
   const headerParts = (headers.authorization && headers.authorization.split(' ')) || [];
   let token;
@@ -20,23 +28,26 @@ function getTokenFromHeader(headers) {
   return token;
 }
 
-function verifyJwt(options) {
+/**
+ * Application error formatter
+ *
+ * @description Formats application errors according to type
+ * @function
+ * @param {Object} error - Express.js err
+ * @returns {Object} - Formatted error object to be passed to local-logger
+ */
+function verifyJwt() {
   return (req, res, next) => {
-    if (!options.skipPaths.includes(req.path)) {
-      const token = getTokenFromHeader(req.headers);
+    const token = getTokenFromHeader(req.headers);
 
-      jwt.verify(token, config.jwt.secret, (err, decoded) => {
-        if (err) {
-          next(err);
-        } else {
-          logger.info('VERIFY-JWT-MIDDLEWARE: Returning decoded token');
-          next(null, decoded);
-        }
-      });
-    } else {
-      logger.info('VERIFY-JWT-MIDDLEWARE: Skipping JWT verification based on skipPaths');
-      next();
-    }
+    jwt.verify(token, config.jwt.secret, (err, decoded) => {
+      if (err) {
+        next(err);
+      } else {
+        logger.info('VERIFY-JWT-MIDDLEWARE: Returning token');
+        next(null, decoded);
+      }
+    });
   };
 }
 

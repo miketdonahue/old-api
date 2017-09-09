@@ -7,12 +7,16 @@ module.exports = {
         primaryKey: true,
         type: Sequelize.INTEGER,
       },
-      short_id: {
+      uid: {
         allowNull: false,
         unique: true,
         type: Sequelize.STRING,
       },
-      name: {
+      first_name: {
+        allowNull: false,
+        type: Sequelize.STRING,
+      },
+      last_name: {
         allowNull: false,
         type: Sequelize.STRING,
       },
@@ -67,7 +71,8 @@ module.exports = {
       },
     });
 
-    queryInterface.addIndex('users', ['short_id', 'email', 'confirmed_token', 'reset_password_token'], {
+    queryInterface.addIndex('users', ['last_name', 'email', 'confirmed_token', 'reset_password_token'], {
+      indexName: 'UsersIndex',
       indicesType: 'UNIQUE',
     });
   },
