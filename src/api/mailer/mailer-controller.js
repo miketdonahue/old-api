@@ -4,7 +4,7 @@ const config = require('config');
 const ServiceError = require('verror');
 const formatError = require('local-error-formatter');
 const emailClient = require('local-mailer');
-const User = require('../../models/user');
+const User = require('../../models').user;
 
 /**
  * Resend confirmation email
@@ -47,9 +47,10 @@ const confirmMail = (req, res) => {
     })
     .catch((err) => {
       const error = formatError(err);
+      const level = logger.determineLevel(error.jse_info.statusCode);
 
-      logger.error({ error, err: error.stack }, `MAILER-CTRL.CONFIRM: ${error.message}`);
-      return res.status(error.jse_info.statusCode).json(error.jse_info.jsonResponse());
+      logger[level]({ err: error }, `MAILER-CTRL.CONFIRM: ${error.message}`);
+      res.status(error.jse_info.statusCode).json(error.jse_info.jsonResponse());
     });
 };
 

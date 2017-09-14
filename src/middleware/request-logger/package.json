@@ -1,0 +1,4 @@
+{
+  "name": "request-logger",
+  "main": "request-logger.js"
+}

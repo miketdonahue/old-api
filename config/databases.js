@@ -1,23 +1,23 @@
 module.exports = {
   development: {
-    username: 'root',
-    password: 'password',
+    username: process.env.DB_USERNAME,
+    password: process.env.DB_PASSWORD,
     database: 'teach_development',
-    host: '127.0.0.1',
+    host: process.env.DB_HOST,
     dialect: 'mysql',
   },
   test: {
-    username: 'root',
-    password: 'password',
+    username: process.env.DB_USERNAME,
+    password: process.env.DB_PASSWORD,
     database: 'teach_test',
-    host: '127.0.0.1',
+    host: process.env.DB_HOST,
     dialect: 'mysql',
   },
   production: {
-    username: 'root',
-    password: 'password',
+    username: process.env.DB_USERNAME,
+    password: process.env.DB_PASSWORD,
     database: 'teach_production',
-    host: '127.0.0.1',
+    host: process.env.DB_HOST,
     dialect: 'mysql',
   },
 };

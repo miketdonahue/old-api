@@ -1,0 +1,4 @@
+{
+  "name": "verify-jwt",
+  "main": "verify-jwt.js"
+}

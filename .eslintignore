@@ -1,4 +1,2 @@
-node_modules/
-publc/
-seeders/
-migrations/
+/node_modules
+/publc

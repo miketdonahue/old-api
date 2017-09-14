@@ -1,24 +1,25 @@
-const User = require('../src/models/user');
+const User = require('../src/models').user;
 const momentDate = require('moment');
 const Chance = require('chance');
 
 const numberOfUsers = 10;
 
 module.exports = {
-  up: function () {
+  up() {
     const chance = new Chance();
     const promises = [];
 
-    for (var i = 0; i < numberOfUsers; i++) {
+    for (let i = 0; i < numberOfUsers; i++) {
       const promise = User.create({
+        role_id: chance.integer({ min: 1, max: 2 }),
         first_name: chance.first(),
         last_name: chance.last(),
         email: chance.email(),
         password: 'password',
         last_visit: momentDate(),
-        ip: chance.ip()
+        ip: chance.ip(),
       }, {
-        fields: ['uid', 'first_name', 'last_name', 'email', 'password', 'last_visit', 'ip', 'confirmed_token', 'confirmed_expires'],
+        fields: ['uid', 'role_id', 'first_name', 'last_name', 'email', 'password', 'last_visit', 'ip', 'confirmed_token', 'confirmed_expires'],
       });
 
       promises.push(promise);
@@ -27,7 +28,7 @@ module.exports = {
     return Promise.all(promises);
   },
 
-  down: function (queryInterface, Sequelize) {
+  down(queryInterface) {
     return queryInterface.bulkDelete('users', null);
-  }
+  },
 };

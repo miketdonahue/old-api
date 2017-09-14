@@ -6,7 +6,8 @@ const md5 = require('md5');
 const ServiceError = require('verror');
 const formatError = require('local-error-formatter');
 const emailClient = require('local-mailer');
-const User = require('../../models/user');
+const User = require('../../models').user;
+const Role = require('../../models').role;
 
 /**
  * User signup flow
@@ -31,7 +32,7 @@ const signup = (req, res) => {
           last_visit: momentDate(),
           ip: req.ip,
         }, {
-          fields: ['uid', 'first_name', 'last_name', 'email', 'password', 'last_visit', 'ip', 'confirmed_token', 'confirmed_expires'],
+          fields: ['uid', 'role_id', 'first_name', 'last_name', 'email', 'password', 'last_visit', 'ip', 'confirmed_token', 'confirmed_expires'],
         });
       }
 
@@ -61,9 +62,10 @@ const signup = (req, res) => {
     })
     .catch((err) => {
       const error = formatError(err);
+      const level = logger.determineLevel(error.jse_info.statusCode);
 
-      logger.error({ error, err: error.stack }, `AUTH-CTRL.SIGNUP: ${error.message}`);
-      return res.status(error.jse_info.statusCode).json(error.jse_info.jsonResponse());
+      logger[level]({ err: error }, `AUTH-CTRL.SIGNUP: ${error.message}`);
+      res.status(error.jse_info.statusCode).json(error.jse_info.jsonResponse());
     });
 };
 
@@ -92,7 +94,7 @@ const confirmAccount = (req, res) => {
             statusText: 'fail',
             data: { user: 'A user does not exist for the given token or token expired' },
           },
-        }, `No user found with given token or token expired: ${user.uid}`);
+        }, `No user found with given token or token expired: ${req.body.uid}`);
 
         throw (serviceError);
       }
@@ -106,30 +108,14 @@ const confirmAccount = (req, res) => {
     })
     .then((updatedUser) => {
       logger.info({ uid: updatedUser.uid }, 'AUTH-CTRL.CONFIRM-ACCOUNT: Account was confirmed');
-
-      jwt.sign({
-        id: updatedUser.uid,
-      },
-      config.jwt.secret,
-      { expiresIn: config.jwt.expireTime }, (e, token) => {
-        if (e) {
-          const error = formatError(e);
-
-          logger.error({ error, err: error.stack }, `AUTH-CTRL.CONFIRM-ACCOUNT: ${error.message}`);
-          return res.status(error.jse_info.statusCode).json(error.jse_info.jsonResponse());
-        }
-
-        emailClient.sendWelcomeMail(updatedUser);
-
-        logger.info({ uid: updatedUser.uid }, 'AUTH-CTRL.CONFIRM-ACCOUNT: Logging in user');
-        return res.json({ status: 'success', data: { token } });
-      });
+      return res.json({ status: 'success', data: { user: { id: updatedUser.uid } } });
     })
     .catch((err) => {
       const error = formatError(err);
+      const level = logger.determineLevel(error.jse_info.statusCode);
 
-      logger.error({ error, err: error.stack }, `AUTH-CTRL.CONFIRM-ACCOUNT: ${error.message}`);
-      return res.status(error.jse_info.statusCode).json(error.jse_info.jsonResponse());
+      logger[level]({ err: error }, `AUTH-CTRL.CONFIRM-ACCOUNT: ${error.message}`);
+      res.status(error.jse_info.statusCode).json(error.jse_info.jsonResponse());
     });
 };
 
@@ -143,7 +129,10 @@ const confirmAccount = (req, res) => {
  * @returns {Object} - JSON response {status, data}
  */
 const login = (req, res) => {
-  User.findOne({ where: { email: req.body.email } })
+  User.findOne({
+    where: { email: req.body.email },
+    include: [{ model: Role }],
+  })
     .then((obj) => {
       const user = obj;
 
@@ -155,7 +144,7 @@ const login = (req, res) => {
             statusText: 'fail',
             data: { email: (!user) ? 'Email does not exist' : 'Email is not confirmed' },
           },
-        }, `Email does not exist or user email is not confirmed: ${user.uid}`);
+        }, `Email does not exist or user email is not confirmed: ${req.body.uid}`);
 
         throw (serviceError);
       }
@@ -190,15 +179,14 @@ const login = (req, res) => {
     })
     .then((updatedUser) => {
       jwt.sign({
-        id: updatedUser.uid,
+        uid: updatedUser.uid,
+        role: updatedUser.role.get('name'),
       },
       config.jwt.secret,
       { expiresIn: config.jwt.expireTime }, (e, token) => {
         if (e) {
           const error = formatError(e);
-
-          logger.error({ error, err: error.stack }, `AUTH-CTRL.LOGIN: ${error.message}`);
-          return res.status(error.jse_info.statusCode).json(error.jse_info.jsonResponse());
+          throw (error);
         }
 
         logger.info({ uid: updatedUser.uid }, 'AUTH-CTRL.LOGIN: Logging in user');
@@ -207,9 +195,10 @@ const login = (req, res) => {
     })
     .catch((err) => {
       const error = formatError(err);
+      const level = logger.determineLevel(error.jse_info.statusCode);
 
-      logger.error({ error, err: error.stack }, `AUTH-CTRL.LOGIN: ${error.message}`);
-      return res.status(error.jse_info.statusCode).json(error.jse_info.jsonResponse());
+      logger[level]({ err: error }, `AUTH-CTRL.LOGIN: ${error.message}`);
+      res.status(error.jse_info.statusCode).json(error.jse_info.jsonResponse());
     });
 };
 
@@ -235,7 +224,7 @@ const forgotPassword = (req, res) => {
             statusText: 'fail',
             data: { email: (!user) ? 'Email does not exist' : 'Email is not confirmed' },
           },
-        }, `Email does not exist or user email is not confirmed: ${user.uid}`);
+        }, `Email does not exist or user email is not confirmed: ${req.body.uid}`);
 
         throw (serviceError);
       }
@@ -259,9 +248,10 @@ const forgotPassword = (req, res) => {
     })
     .catch((err) => {
       const error = formatError(err);
+      const level = logger.determineLevel(error.jse_info.statusCode);
 
-      logger.error({ error, err: error.stack }, `AUTH-CTRL.FORGOT-PASSWORD: ${error.message}`);
-      return res.status(error.jse_info.statusCode).json(error.jse_info.jsonResponse());
+      logger[level]({ err: error }, `AUTH-CTRL.FORGOT-PASSWORD: ${error.message}`);
+      res.status(error.jse_info.statusCode).json(error.jse_info.jsonResponse());
     });
 };
 
@@ -290,7 +280,7 @@ const resetPassword = (req, res) => {
             statusText: 'fail',
             data: { user: 'A user does not exist for the given token or token expired' },
           },
-        }, `No user found with given token or token expired: ${user.uid}`);
+        }, `No user found with given token or token expired: ${req.body.uid}`);
 
         throw (serviceError);
       }
@@ -327,14 +317,18 @@ const resetPassword = (req, res) => {
       return user.save(['password', 'reset_password_token', 'reset_password_expires']);
     })
     .then((updatedUser) => {
-      logger.info({ uid: updatedUser.uid }, 'AUTH-CTRL.RESET-PASSWORD: User password has been reset');
+      logger.info({
+        uid: updatedUser.uid,
+      }, 'AUTH-CTRL.RESET-PASSWORD: User password has been reset');
+
       return res.json({ status: 'success', data: { user: { id: updatedUser.uid } } });
     })
     .catch((err) => {
       const error = formatError(err);
+      const level = logger.determineLevel(error.jse_info.statusCode);
 
-      logger.error({ error, err: error.stack }, `AUTH-CTRL.RESET-PASSWORD: ${error.message}`);
-      return res.status(error.jse_info.statusCode).json(error.jse_info.jsonResponse());
+      logger[level]({ err: error }, `AUTH-CTRL.RESET-PASSWORD: ${error.message}`);
+      res.status(error.jse_info.statusCode).json(error.jse_info.jsonResponse());
     });
 };
 

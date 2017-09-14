@@ -1,8 +1,7 @@
 const jwt = require('jsonwebtoken');
-const config = require('config');
+const ServiceError = require('verror');
 const logger = require('local-logger');
-
-// TODO: Want to implement refresh token?
+const config = require('config');
 
 /**
  * Retrieve the Bearer authorization token from the header
@@ -42,11 +41,18 @@ function verifyJwt() {
 
     jwt.verify(token, config.jwt.secret, (err, decoded) => {
       if (err) {
-        next(err);
-      } else {
-        logger.info('VERIFY-JWT-MIDDLEWARE: Returning token');
-        next(null, decoded);
+        const error = new ServiceError({
+          name: err.name,
+        }, err.message);
+
+        logger.warn({ err: error }, `VERIFY-JWT-MIDDLEWARE: ${error.message}`);
+        return next(err);
       }
+
+      logger.info('VERIFY-JWT-MIDDLEWARE: Returning token');
+
+      res.locals.user = decoded;
+      return next();
     });
   };
 }

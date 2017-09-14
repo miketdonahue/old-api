@@ -1,8 +1,8 @@
 const logger = require('local-logger');
 const ServiceError = require('verror');
 const formatError = require('local-error-formatter');
-const modelUtils = require('../../models/utils');
-const User = require('../../models/user');
+const modelUtils = require('../../utils/utils');
+const User = require('../../models').user;
 
 const attrWhitelist = [
   'uid',
@@ -45,9 +45,10 @@ const list = (req, res) => {
     })
     .catch((err) => {
       const error = formatError(err);
+      const level = logger.determineLevel(error.jse_info.statusCode);
 
-      logger.error({ error, err: error.stack }, `USER-CTRL.LIST: ${error.message}`);
-      return res.status(error.jse_info.statusCode).json(error.jse_info.jsonResponse());
+      logger[level]({ err: error }, `USER-CTRL.LIST: ${error.message}`);
+      res.status(error.jse_info.statusCode).json(error.jse_info.jsonResponse());
     });
 };
 
@@ -81,9 +82,10 @@ const show = (req, res) => {
     })
     .catch((err) => {
       const error = formatError(err);
+      const level = logger.determineLevel(error.jse_info.statusCode);
 
-      logger.error({ error, err: error.stack }, `USER-CTRL.SHOW: ${error.message}`);
-      return res.status(error.jse_info.statusCode).json(error.jse_info.jsonResponse());
+      logger[level]({ err: error }, `USER-CTRL.SHOW: ${error.message}`);
+      res.status(error.jse_info.statusCode).json(error.jse_info.jsonResponse());
     });
 };
 
@@ -162,9 +164,10 @@ const update = (req, res) => {
     })
     .catch((err) => {
       const error = formatError(err);
+      const level = logger.determineLevel(error.jse_info.statusCode);
 
-      logger.error({ error, err: error.stack }, `USER-CTRL.UPDATE: ${error.message}`);
-      return res.status(error.jse_info.statusCode).json(error.jse_info.jsonResponse());
+      logger[level]({ err: error }, `USER-CTRL.UPDATE: ${error.message}`);
+      res.status(error.jse_info.statusCode).json(error.jse_info.jsonResponse());
     });
 };
 
@@ -206,9 +209,10 @@ const destroy = (req, res) => {
     })
     .catch((err) => {
       const error = formatError(err);
+      const level = logger.determineLevel(error.jse_info.statusCode);
 
-      logger.error({ error, err: error.stack }, `USER-CTRL.DESTROY: ${error.message}`);
-      return res.status(error.jse_info.statusCode).json(error.jse_info.jsonResponse());
+      logger[level]({ err: error }, `USER-CTRL.DESTROY: ${error.message}`);
+      res.status(error.jse_info.statusCode).json(error.jse_info.jsonResponse());
     });
 };
 
