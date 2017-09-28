@@ -5,10 +5,8 @@ module.exports = (sequelize, DataTypes) => {
     name: {
       type: DataTypes.STRING,
       allowNull: false,
-      defaultValue: 'user',
       validate: {
         isAlpha: true,
-        notEmpty: true,
         required: (value) => {
           v.required(value);
         },

@@ -4,11 +4,12 @@
   "description": "Teach and Learn Anything",
   "author": "Make It Count <mike@makeitcount.cc>",
   "scripts": {
-    "start:dev": "NODE_PATH='./src' node src/app.js | bunyan",
-    "start:prod": "NODE_PATH='./src' NODE_ENV=production node src/app.js | bunyan",
-    "nodemon": "NODE_PATH='./src' nodemon src/app.js | bunyan",
-    "test": "NODE_ENV=test mocha \"src/**/*.js\"",
-    "test:watch": "NODE_ENV=test nodemon --exec \"mocha 'src/**/*.js'\"",
+    "start:dev": "node src/app.js | bunyan",
+    "start:prod": "NODE_ENV=production node src/app.js | bunyan",
+    "nodemon": "nodemon src/app.js | bunyan",
+    "test": "NODE_ENV=test nyc mocha 'src/**/*.test.js'",
+    "test:watch": "NODE_ENV=test nodemon --exec \"mocha 'src/**/*.test.js'\"",
+    "test:bb": "NODE_ENV=test mocha 'src/**/*.test.bb.js' --timeout 30000",
     "lint": "eslint 'config/*.js' 'migrations/*.js' 'seeders/*.js' 'src/**/*.js'",
     "migrate": "sequelize db:migrate --config config/databases.js",
     "migrate:undo": "sequelize db:migrate:undo --config config/databases.js",
@@ -16,6 +17,32 @@
     "seed": "sequelize db:seed:all --config config/databases.js",
     "seed:undo": "sequelize db:seed:undo --config config/databases.js",
     "seed:undo:all": "sequelize db:seed:undo:all --config config/databases.js"
+  },
+  "nyc": {
+    "check-coverage": true,
+    "per-file": true,
+    "watermarks": {
+      "lines": [
+        75,
+        95
+      ],
+      "functions": [
+        75,
+        95
+      ],
+      "branches": [
+        75,
+        95
+      ],
+      "statements": [
+        75,
+        95
+      ]
+    },
+    "reporter": [
+      "lcov",
+      "text-summary"
+    ]
   },
   "main": "src/app.js",
   "repository": {
@@ -61,6 +88,8 @@
     "lodash.times": "^4.3.2",
     "mocha": "^3.4.2",
     "nodemon": "^1.12.0",
+    "nyc": "^11.2.1",
+    "sinon": "^4.0.0",
     "supertest": "^3.0.0"
   },
   "private": true,

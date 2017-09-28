@@ -1,4 +1,5 @@
 const logger = require('local-logger');
+const config = require('config');
 const objectPath = require('object-path');
 const ServiceError = require('verror');
 const getPermissions = require('./access');
@@ -14,6 +15,8 @@ const getPermissions = require('./access');
  */
 function verifyAccess(action, resource) {
   return (req, res, next) => {
+    if (config.verifyAccess === false) return next();
+
     const user = objectPath.get(res.locals, 'user');
     const paramsUid = objectPath.get(req, 'params.uid');
 

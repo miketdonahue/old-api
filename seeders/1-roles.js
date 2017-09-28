@@ -1,4 +1,5 @@
 const Role = require('../src/models').role;
+const logger = require('../src/node_modules/local-logger');
 
 module.exports = {
   up() {
@@ -11,7 +12,10 @@ module.exports = {
         name: role,
       }, {
         fields: ['name'],
-      });
+      })
+        .catch((error) => {
+          logger.error(error);
+        });
 
       promises.push(promise);
     }

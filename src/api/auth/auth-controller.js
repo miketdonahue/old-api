@@ -18,7 +18,7 @@ const Role = require('../../models').role;
  * @param {Object} res - HTTP response
  * @returns {Object} - JSON response {status, data}
  */
-const signup = (req, res) => {
+const signup = (req, res) =>
   User.findOne({ where: { email: req.body.email } })
     .then((user) => {
       if (!user) {
@@ -45,7 +45,7 @@ const signup = (req, res) => {
         logger.info({ uid: user.uid }, 'AUTH-CTRL.SIGNUP: User created');
         return res.status(201).json({
           status: 'success',
-          data: { user: { id: user.uid } },
+          data: { user: { uid: user.uid } },
         });
       }
 
@@ -67,7 +67,6 @@ const signup = (req, res) => {
       logger[level]({ err: error }, `AUTH-CTRL.SIGNUP: ${error.message}`);
       res.status(error.jse_info.statusCode).json(error.jse_info.jsonResponse());
     });
-};
 
 /**
  * User confirm account flow
@@ -81,7 +80,7 @@ const signup = (req, res) => {
 const confirmAccount = (req, res) => {
   const { confirmToken } = req.query;
 
-  User.findOne({ where: { confirmed_token: confirmToken } })
+  return User.findOne({ where: { confirmed_token: confirmToken } })
     .then((obj) => {
       const user = obj;
       const tokenExpired = user && user.confirmed_expires < momentDate();
@@ -108,7 +107,7 @@ const confirmAccount = (req, res) => {
     })
     .then((updatedUser) => {
       logger.info({ uid: updatedUser.uid }, 'AUTH-CTRL.CONFIRM-ACCOUNT: Account was confirmed');
-      return res.json({ status: 'success', data: { user: { id: updatedUser.uid } } });
+      return res.json({ status: 'success', data: { user: { uid: updatedUser.uid } } });
     })
     .catch((err) => {
       const error = formatError(err);
@@ -128,7 +127,7 @@ const confirmAccount = (req, res) => {
  * @param {Object} res - HTTP response
  * @returns {Object} - JSON response {status, data}
  */
-const login = (req, res) => {
+const login = (req, res) =>
   User.findOne({
     where: { email: req.body.email },
     include: [{ model: Role }],
@@ -200,7 +199,6 @@ const login = (req, res) => {
       logger[level]({ err: error }, `AUTH-CTRL.LOGIN: ${error.message}`);
       res.status(error.jse_info.statusCode).json(error.jse_info.jsonResponse());
     });
-};
 
 /**
  * User forgot password flow
@@ -211,7 +209,7 @@ const login = (req, res) => {
  * @param {Object} res - HTTP response
  * @returns {Object} - JSON response {status, data}
  */
-const forgotPassword = (req, res) => {
+const forgotPassword = (req, res) =>
   User.findOne({ where: { email: req.body.email } })
     .then((obj) => {
       const user = obj;
@@ -243,7 +241,7 @@ const forgotPassword = (req, res) => {
         .then((updatedUser) => {
           emailClient.sendResetPasswordMail(user);
 
-          return res.json({ status: 'success', data: { user: { id: updatedUser.uid } } });
+          return res.json({ status: 'success', data: { user: { uid: updatedUser.uid } } });
         });
     })
     .catch((err) => {
@@ -253,7 +251,6 @@ const forgotPassword = (req, res) => {
       logger[level]({ err: error }, `AUTH-CTRL.FORGOT-PASSWORD: ${error.message}`);
       res.status(error.jse_info.statusCode).json(error.jse_info.jsonResponse());
     });
-};
 
 /**
  * User reset password flow
@@ -267,7 +264,7 @@ const forgotPassword = (req, res) => {
 const resetPassword = (req, res) => {
   const { resetPasswordToken } = req.query;
 
-  User.findOne({ where: { reset_password_token: resetPasswordToken } })
+  return User.findOne({ where: { reset_password_token: resetPasswordToken } })
     .then((obj) => {
       const user = obj;
       const tokenExpired = user && user.reset_password_expires < momentDate();
@@ -296,13 +293,13 @@ const resetPassword = (req, res) => {
         .then((passwordMatch) => {
           if (passwordMatch) return ({ user, passwordMatch });
 
-          return user;
+          return { user };
         });
     })
     .then((obj) => {
-      const user = obj;
+      const user = obj.user;
 
-      if (!user.passwordMatch) {
+      if (!obj.passwordMatch) {
         return user.hashPassword(req.body.password)
           .then((hash) => {
             user.password = hash;
@@ -314,14 +311,14 @@ const resetPassword = (req, res) => {
 
       user.reset_password_token = null;
       user.reset_password_expires = null;
-      return user.save(['password', 'reset_password_token', 'reset_password_expires']);
+      return user.save(['reset_password_token', 'reset_password_expires']);
     })
     .then((updatedUser) => {
       logger.info({
         uid: updatedUser.uid,
       }, 'AUTH-CTRL.RESET-PASSWORD: User password has been reset');
 
-      return res.json({ status: 'success', data: { user: { id: updatedUser.uid } } });
+      return res.json({ status: 'success', data: { user: { uid: updatedUser.uid } } });
     })
     .catch((err) => {
       const error = formatError(err);

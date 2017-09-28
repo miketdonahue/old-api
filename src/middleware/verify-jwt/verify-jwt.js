@@ -37,9 +37,11 @@ function getTokenFromHeader(headers) {
  */
 function verifyJwt() {
   return (req, res, next) => {
+    if (config.jwt === false) return next();
+
     const token = getTokenFromHeader(req.headers);
 
-    jwt.verify(token, config.jwt.secret, (err, decoded) => {
+    return jwt.verify(token, config.jwt.secret, (err, decoded) => {
       if (err) {
         const error = new ServiceError({
           name: err.name,

@@ -124,7 +124,9 @@ const update = (req, res) => {
 
       logger.info({ uid: user.uid }, 'USER-CTRL.UPDATE: Updating user');
 
-      return user.comparePassword(req.body.password)
+      if (!body.password) return { user };
+
+      return user.comparePassword(body.password)
         .then((isMatch) => {
           if (isMatch) {
             body.password = undefined;
@@ -144,23 +146,26 @@ const update = (req, res) => {
         if (body[key] !== undefined) fieldsToUpdate.push(key);
       });
 
-      if (!passwordMatch) {
+      if (passwordMatch === false) {
         return user.hashPassword(req.body.password)
           .then((hash) => {
-            user.password = hash;
-            return user.save(fieldsToUpdate);
+            body.password = hash;
+            return user;
           });
       }
 
-      return user.save(fieldsToUpdate);
+      return user;
     })
     .then((user) => {
-      logger.info({ uid: user.uid }, 'USER-CTRL.UPDATE: Updated user');
+      user.update(body, { fields: fieldsToUpdate })
+        .then((updatedUser) => {
+          logger.info({ uid: updatedUser.uid }, 'USER-CTRL.UPDATE: Updated user');
 
-      return res.json({
-        status: 'success',
-        data: { user: modelUtils.responseData(attrWhitelist, user) },
-      });
+          return res.json({
+            status: 'success',
+            data: { user: modelUtils.responseData(attrWhitelist, updatedUser) },
+          });
+        });
     })
     .catch((err) => {
       const error = formatError(err);

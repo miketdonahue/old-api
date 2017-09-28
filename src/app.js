@@ -69,3 +69,5 @@ app.listen(config.server.port, () => {
     env: process.env.NODE_ENV || 'development',
   }, 'Server has been started');
 });
+
+module.exports = app;
