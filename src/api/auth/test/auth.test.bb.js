@@ -13,18 +13,16 @@ const User = require('../../../models').user;
 // TODO: Helper that confirms account so downstream actions can be taken
 
 describe('Black Box Test: Auth', () => {
-  before((done) => {
+  beforeEach((done) => {
     exec('yarn seed', (error) => {
       done(error);
     });
   });
 
-  beforeEach(() => {
-    config.jwt = false;
-  });
-
-  after((done) => {
+  afterEach((done) => {
     exec('yarn seed:undo:all', (error) => {
+      config.jwt = false;
+
       done(error);
     });
   });
@@ -65,6 +63,30 @@ describe('Black Box Test: Auth', () => {
           });
         });
     });
+
+    it('should throw an error if user already created', (done) => {
+      User.findOne({ where: { confirmed: false } }).then((user) => {
+        request
+          .post('/api/auth/signup')
+          .send({
+            email: user.email,
+            firstName: 'michael',
+            lastName: 'jones',
+            password: 'password',
+          })
+          .expect(400)
+          .end((err, response) => {
+            const body = response.body;
+
+            expect(body.status).to.equal('fail');
+            expect(body).to.have.all.keys('status', 'code', 'data');
+            expect(body.data).to.have.all.keys('email');
+            expect(body.code).to.equal('UserExists');
+
+            done(err);
+          });
+      });
+    });
   });
 
   describe('POST /api/auth/confirm-account', () => {
@@ -89,6 +111,53 @@ describe('Black Box Test: Auth', () => {
 
               done(err);
             });
+          });
+      });
+    });
+
+    it('should throw an error if user not found', (done) => {
+      User.findOne({ where: { confirmed_token: 'xyz' } }).then(() => {
+        request
+          .post('/api/auth/confirm-account')
+          .expect(403)
+          .end((err, response) => {
+            const body = response.body;
+
+            expect(body.status).to.equal('fail');
+            expect(body).to.have.all.keys('status', 'code', 'data');
+            expect(body.data).to.have.all.keys('user');
+            expect(body.code).to.equal('UserNotFound');
+
+            done(err);
+          });
+      });
+    });
+
+    it('should throw an error if the user\'s token has expired', (done) => {
+      config.jwt = {
+        secret: process.env.JWT_SECRET,
+        expireTime: '1h',
+      };
+
+      User.findOne({ where: { confirmed: false } }).then((obj) => {
+        const user = obj;
+
+        user.confirmed_expires = momentDate().subtract(3, 'hours');
+        user.save();
+
+        request
+          .post('/api/auth/confirm-account')
+          .query({ confirmToken: user.confirmed_token })
+          .expect(403)
+          .end((err, response) => {
+            const body = response.body;
+
+            expect(body.status).to.equal('fail');
+            expect(body).to.have.all.keys('status', 'code', 'data');
+            expect(body.data).to.have.all.keys('user');
+            expect(body.code).to.equal('ExpiredToken');
+
+            done(err);
           });
       });
     });
@@ -134,6 +203,104 @@ describe('Black Box Test: Auth', () => {
           });
       });
     });
+
+    it('should throw an error if user not found', (done) => {
+      request
+        .post('/api/auth/login')
+        .send({
+          email: null,
+          password: 'password',
+        })
+        .expect(400)
+        .end((err, response) => {
+          const body = response.body;
+
+          expect(body.status).to.equal('fail');
+          expect(body).to.have.all.keys('status', 'code', 'data');
+          expect(body.data).to.have.all.keys('email');
+          expect(body.code).to.equal('EmailNotFound');
+
+          done(err);
+        });
+    });
+
+    it('should throw an error if user\'s account is not confirmed', (done) => {
+      User.findOne({ where: { confirmed: false } }).then((user) => {
+        request
+          .post('/api/auth/login')
+          .send({
+            email: user.email,
+            password: 'password',
+          })
+          .expect(400)
+          .end((err, response) => {
+            const body = response.body;
+
+            expect(body.status).to.equal('fail');
+            expect(body).to.have.all.keys('status', 'code', 'data');
+            expect(body.data).to.have.all.keys('email');
+            expect(body.code).to.equal('EmailNotConfirmed');
+
+            done(err);
+          });
+      });
+    });
+
+    it('should throw an error if user\'s password does not match', (done) => {
+      User.findOne({ where: { confirmed: false } }).then((user) => {
+        request
+          .post('/api/auth/confirm-account')
+          .query({ confirmToken: user.confirmed_token })
+          .expect(200)
+          .end(() => {
+            request
+              .post('/api/auth/login')
+              .send({
+                email: user.email,
+                password: 'bad_password',
+              })
+              .expect(400)
+              .end((e, res) => {
+                const resBody = res.body;
+
+                expect(resBody.status).to.equal('fail');
+                expect(resBody).to.have.all.keys('status', 'code', 'data');
+                expect(resBody.data).to.have.all.keys('password');
+                expect(resBody.code).to.equal('InvalidCredentials');
+
+                done(e);
+              });
+          });
+      });
+    });
+
+    it('should throw an error if JWT not provided', (done) => {
+      User.findOne({ where: { confirmed: false } }).then((user) => {
+        request
+          .post('/api/auth/confirm-account')
+          .query({ confirmToken: user.confirmed_token })
+          .expect(200)
+          .end(() => {
+            request
+              .post('/api/auth/login')
+              .send({
+                email: user.email,
+                password: 'password',
+              })
+              .expect(500)
+              .end((e, res) => {
+                const resBody = res.body;
+
+                expect(resBody.status).to.equal('fail');
+                expect(resBody).to.have.all.keys('status', 'message', 'code', 'data');
+                expect(resBody.code).to.equal('Error');
+                expect(resBody.data).to.be.an('array').that.is.empty;
+
+                done(e);
+              });
+          });
+      });
+    });
   });
 
   describe('POST /api/auth/forgot-password', () => {
@@ -172,6 +339,46 @@ describe('Black Box Test: Auth', () => {
                   done(e);
                 });
               });
+          });
+      });
+    });
+
+    it('should throw an error if user not found', (done) => {
+      request
+        .post('/api/auth/forgot-password')
+        .send({
+          email: null,
+        })
+        .expect(400)
+        .end((err, response) => {
+          const body = response.body;
+
+          expect(body.status).to.equal('fail');
+          expect(body).to.have.all.keys('status', 'code', 'data');
+          expect(body.data).to.have.all.keys('email');
+          expect(body.code).to.equal('EmailNotFound');
+
+          done(err);
+        });
+    });
+
+    it('should throw an error if user\'s account is not confirmed', (done) => {
+      User.findOne({ where: { confirmed: false } }).then((user) => {
+        request
+          .post('/api/auth/forgot-password')
+          .send({
+            email: user.email,
+          })
+          .expect(400)
+          .end((err, response) => {
+            const body = response.body;
+
+            expect(body.status).to.equal('fail');
+            expect(body).to.have.all.keys('status', 'code', 'data');
+            expect(body.data).to.have.all.keys('email');
+            expect(body.code).to.equal('EmailNotConfirmed');
+
+            done(err);
           });
       });
     });
@@ -216,6 +423,72 @@ describe('Black Box Test: Auth', () => {
 
                         done(err);
                       });
+                    });
+                });
+              });
+          });
+      });
+    });
+
+    it('should throw an error if user not found', (done) => {
+      User.findOne({ where: { confirmed_token: 'xyz' } }).then(() => {
+        request
+          .post('/api/auth/reset-password')
+          .expect(403)
+          .end((err, response) => {
+            const body = response.body;
+
+            expect(body.status).to.equal('fail');
+            expect(body).to.have.all.keys('status', 'code', 'data');
+            expect(body.data).to.have.all.keys('user');
+            expect(body.code).to.equal('UserNotFound');
+
+            done(err);
+          });
+      });
+    });
+
+    it('should throw an error if the user\'s token has expired', (done) => {
+      config.jwt = {
+        secret: process.env.JWT_SECRET,
+        expireTime: '1h',
+      };
+
+      User.findOne({ where: { confirmed: false } }).then((user) => {
+        request
+          .post('/api/auth/confirm-account')
+          .query({ confirmToken: user.confirmed_token })
+          .expect(200)
+          .end(() => {
+            request
+              .post('/api/auth/forgot-password')
+              .send({
+                email: user.email,
+              })
+              .expect(200)
+              .end(() => {
+                User.findOne({ where: { uid: user.uid } }).then((userObj) => {
+                  const selectedUser = userObj;
+
+                  selectedUser.reset_password_expires = momentDate().subtract(3, 'hours');
+                  selectedUser.save();
+
+                  request
+                    .post('/api/auth/reset-password')
+                    .query({ resetPasswordToken: selectedUser.reset_password_token })
+                    .send({
+                      password: 'password1',
+                    })
+                    .expect(403)
+                    .end((err, response) => {
+                      const body = response.body;
+
+                      expect(body.status).to.equal('fail');
+                      expect(body).to.have.all.keys('status', 'code', 'data');
+                      expect(body.data).to.have.all.keys('user');
+                      expect(body.code).to.equal('ExpiredToken');
+
+                      done(err);
                     });
                 });
               });

@@ -27,7 +27,7 @@ const attrWhitelist = [
 const list = (req, res) => {
   User.findAll({ order: [['last_name', 'ASC']], attributes: attrWhitelist })
     .then((users) => {
-      if (!users) {
+      if (!users.length) {
         const serviceError = new ServiceError({
           name: 'NoUsersFound',
           info: {

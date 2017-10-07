@@ -8,13 +8,13 @@ const request = require('supertest')(app);
 const User = require('../../../models').user;
 
 describe('Black Box Test: Users', () => {
-  before((done) => {
+  beforeEach((done) => {
     exec('yarn seed', (error) => {
       done(error);
     });
   });
 
-  after((done) => {
+  afterEach((done) => {
     exec('yarn seed:undo:all', (error) => {
       done(error);
     });
@@ -39,6 +39,24 @@ describe('Black Box Test: Users', () => {
           done(err);
         });
     });
+
+    it('should throw an error if no users are returned', (done) => {
+      exec('yarn seed:undo:all', () => {
+        request
+          .get('/api/users')
+          .expect(400)
+          .end((err, response) => {
+            const body = response.body;
+
+            expect(body.status).to.equal('fail');
+            expect(body).to.have.all.keys('status', 'code', 'data');
+            expect(body.data).to.have.all.keys('users');
+            expect(body.code).to.equal('NoUsersFound');
+
+            done(err);
+          });
+      });
+    });
   });
 
   describe('GET /api/users/:uid', () => {
@@ -59,6 +77,22 @@ describe('Black Box Test: Users', () => {
             done(err);
           });
       });
+    });
+
+    it('should throw an error if no user is found', (done) => {
+      request
+        .get('/api/users/xyz')
+        .expect(400)
+        .end((err, response) => {
+          const body = response.body;
+
+          expect(body.status).to.equal('fail');
+          expect(body).to.have.all.keys('status', 'code', 'data');
+          expect(body.data).to.have.all.keys('user');
+          expect(body.code).to.equal('UserNotFound');
+
+          done(err);
+        });
     });
   });
 
@@ -86,6 +120,22 @@ describe('Black Box Test: Users', () => {
           });
       });
     });
+
+    it('should throw an error if no user is found', (done) => {
+      request
+        .get('/api/users/xyz')
+        .expect(400)
+        .end((err, response) => {
+          const body = response.body;
+
+          expect(body.status).to.equal('fail');
+          expect(body).to.have.all.keys('status', 'code', 'data');
+          expect(body.data).to.have.all.keys('user');
+          expect(body.code).to.equal('UserNotFound');
+
+          done(err);
+        });
+    });
   });
 
   describe('DELETE /api/users/:uid', () => {
@@ -107,6 +157,21 @@ describe('Black Box Test: Users', () => {
           });
       });
     });
+
+    it('should throw an error if no user is found', (done) => {
+      request
+        .get('/api/users/xyz')
+        .expect(400)
+        .end((err, response) => {
+          const body = response.body;
+
+          expect(body.status).to.equal('fail');
+          expect(body).to.have.all.keys('status', 'code', 'data');
+          expect(body.data).to.have.all.keys('user');
+          expect(body.code).to.equal('UserNotFound');
+
+          done(err);
+        });
+    });
   });
 });
-

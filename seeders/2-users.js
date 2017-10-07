@@ -11,7 +11,6 @@ module.exports = {
 
     for (let i = 0; i < numberOfUsers; i++) {
       const promise = User.create({
-        role_id: chance.integer({ min: 1, max: 2 }),
         first_name: chance.first(),
         last_name: chance.last(),
         email: chance.email(),

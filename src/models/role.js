@@ -2,6 +2,12 @@ const v = require('local-validations');
 
 module.exports = (sequelize, DataTypes) => {
   const Role = sequelize.define('role', {
+    id: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      primaryKey: true,
+      autoIncrement: false,
+    },
     name: {
       type: DataTypes.STRING,
       allowNull: false,

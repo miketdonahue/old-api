@@ -93,7 +93,7 @@ const confirmAccount = (req, res) => {
             statusText: 'fail',
             data: { user: 'A user does not exist for the given token or token expired' },
           },
-        }, `No user found with given token or token expired: ${req.body.uid}`);
+        }, 'No user found with given token or token expired');
 
         throw (serviceError);
       }
@@ -143,7 +143,7 @@ const login = (req, res) =>
             statusText: 'fail',
             data: { email: (!user) ? 'Email does not exist' : 'Email is not confirmed' },
           },
-        }, `Email does not exist or user email is not confirmed: ${req.body.uid}`);
+        }, 'Email does not exist or user email is not confirmed');
 
         throw (serviceError);
       }
@@ -222,7 +222,7 @@ const forgotPassword = (req, res) =>
             statusText: 'fail',
             data: { email: (!user) ? 'Email does not exist' : 'Email is not confirmed' },
           },
-        }, `Email does not exist or user email is not confirmed: ${req.body.uid}`);
+        }, 'Email does not exist or user email is not confirmed');
 
         throw (serviceError);
       }
@@ -277,7 +277,7 @@ const resetPassword = (req, res) => {
             statusText: 'fail',
             data: { user: 'A user does not exist for the given token or token expired' },
           },
-        }, `No user found with given token or token expired: ${req.body.uid}`);
+        }, 'No user found with given token or token expired');
 
         throw (serviceError);
       }

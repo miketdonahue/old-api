@@ -9,9 +9,10 @@ module.exports = {
     for (let i = 0; i <= rolesToCreate.length; i++) {
       const role = rolesToCreate.pop();
       const promise = Role.create({
+        id: i + 1,
         name: role,
       }, {
-        fields: ['name'],
+        fields: ['id', 'name'],
       })
         .catch((error) => {
           logger.error(error);
