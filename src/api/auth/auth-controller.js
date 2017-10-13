@@ -3,7 +3,6 @@ const logger = require('local-logger');
 const config = require('config');
 const momentDate = require('moment');
 const md5 = require('md5');
-const ServiceError = require('verror');
 const formatError = require('local-error-formatter');
 const emailClient = require('local-mailer');
 const User = require('../../models').user;
@@ -49,23 +48,21 @@ const signup = (req, res) =>
         });
       }
 
-      const serviceError = new ServiceError({
+      const serviceError = {
         name: 'UserExists',
-        info: {
-          statusCode: 400,
-          statusText: 'fail',
-          data: { email: 'A user with this email has already been created' },
-        },
-      }, 'Duplicate user');
+        message: 'This email already exists in the database; Duplicate user',
+        statusCode: 400,
+        data: { email: 'A user with this email has already been created' },
+      };
 
       throw (serviceError);
     })
     .catch((err) => {
       const error = formatError(err);
-      const level = logger.determineLevel(error.jse_info.statusCode);
+      const { level, statusCode, jsonResponse, addStackTrace } = error.jse_info;
 
-      logger[level]({ err: error }, `AUTH-CTRL.SIGNUP: ${error.message}`);
-      res.status(error.jse_info.statusCode).json(error.jse_info.jsonResponse());
+      logger[level]({ err: addStackTrace ? error : undefined }, `AUTH-CTRL.SIGNUP: ${error.message}`);
+      return res.status(statusCode).json(jsonResponse);
     });
 
 /**
@@ -86,14 +83,12 @@ const confirmAccount = (req, res) => {
       const tokenExpired = user && user.confirmed_expires < momentDate();
 
       if (!user || tokenExpired) {
-        const serviceError = new ServiceError({
+        const serviceError = {
           name: (!user) ? 'UserNotFound' : 'ExpiredToken',
-          info: {
-            statusCode: 403,
-            statusText: 'fail',
-            data: { user: 'A user does not exist for the given token or token expired' },
-          },
-        }, 'No user found with given token or token expired');
+          message: 'The user was not found or the token has expired',
+          statusCode: 403,
+          data: { user: (!user) ? 'The user was not found' : 'The token has expired' },
+        };
 
         throw (serviceError);
       }
@@ -111,10 +106,10 @@ const confirmAccount = (req, res) => {
     })
     .catch((err) => {
       const error = formatError(err);
-      const level = logger.determineLevel(error.jse_info.statusCode);
+      const { level, statusCode, jsonResponse, addStackTrace } = error.jse_info;
 
-      logger[level]({ err: error }, `AUTH-CTRL.CONFIRM-ACCOUNT: ${error.message}`);
-      res.status(error.jse_info.statusCode).json(error.jse_info.jsonResponse());
+      logger[level]({ err: addStackTrace ? error : undefined }, `AUTH-CTRL.CONFIRM-ACCOUNT: ${error.message}`);
+      return res.status(statusCode).json(jsonResponse);
     });
 };
 
@@ -136,14 +131,12 @@ const login = (req, res) =>
       const user = obj;
 
       if (!user || !user.confirmed) {
-        const serviceError = new ServiceError({
+        const serviceError = {
           name: (!user) ? 'EmailNotFound' : 'EmailNotConfirmed',
-          info: {
-            statusCode: 400,
-            statusText: 'fail',
-            data: { email: (!user) ? 'Email does not exist' : 'Email is not confirmed' },
-          },
-        }, 'Email does not exist or user email is not confirmed');
+          message: 'Email does not exist or user email is not confirmed',
+          statusCode: 400,
+          data: { email: (!user) ? 'The email does not exist' : 'The email is not confirmed' },
+        };
 
         throw (serviceError);
       }
@@ -157,14 +150,12 @@ const login = (req, res) =>
       return user.comparePassword(req.body.password)
         .then((isMatch) => {
           if (!isMatch) {
-            const serviceError = new ServiceError({
+            const serviceError = {
               name: 'InvalidCredentials',
-              info: {
-                statusCode: 400,
-                statusText: 'fail',
-                data: { password: 'Password does not match' },
-              },
-            }, `User password does not match DB: ${user.uid}`);
+              message: 'The user has entered invalid credentials',
+              statusCode: 400,
+              data: { user: 'Credentials are invalid' },
+            };
 
             throw (serviceError);
           }
@@ -183,10 +174,7 @@ const login = (req, res) =>
       },
       config.jwt.secret,
       { expiresIn: config.jwt.expireTime }, (e, token) => {
-        if (e) {
-          const error = formatError(e);
-          throw (error);
-        }
+        if (e) throw (e);
 
         logger.info({ uid: updatedUser.uid }, 'AUTH-CTRL.LOGIN: Logging in user');
         return res.json({ status: 'success', data: { token } });
@@ -194,10 +182,10 @@ const login = (req, res) =>
     })
     .catch((err) => {
       const error = formatError(err);
-      const level = logger.determineLevel(error.jse_info.statusCode);
+      const { level, statusCode, jsonResponse, addStackTrace } = error.jse_info;
 
-      logger[level]({ err: error }, `AUTH-CTRL.LOGIN: ${error.message}`);
-      res.status(error.jse_info.statusCode).json(error.jse_info.jsonResponse());
+      logger[level]({ err: addStackTrace ? error : undefined }, `AUTH-CTRL.LOGIN: ${error.message}`);
+      return res.status(statusCode).json(jsonResponse);
     });
 
 /**
@@ -215,14 +203,12 @@ const forgotPassword = (req, res) =>
       const user = obj;
 
       if (!user || !user.confirmed) {
-        const serviceError = new ServiceError({
+        const serviceError = {
           name: (!user) ? 'EmailNotFound' : 'EmailNotConfirmed',
-          info: {
-            statusCode: 400,
-            statusText: 'fail',
-            data: { email: (!user) ? 'Email does not exist' : 'Email is not confirmed' },
-          },
-        }, 'Email does not exist or user email is not confirmed');
+          message: 'Email does not exist or user email is not confirmed',
+          statusCode: 400,
+          data: { email: (!user) ? 'The email does not exist' : 'The email is not confirmed' },
+        };
 
         throw (serviceError);
       }
@@ -246,10 +232,10 @@ const forgotPassword = (req, res) =>
     })
     .catch((err) => {
       const error = formatError(err);
-      const level = logger.determineLevel(error.jse_info.statusCode);
+      const { level, statusCode, jsonResponse, addStackTrace } = error.jse_info;
 
-      logger[level]({ err: error }, `AUTH-CTRL.FORGOT-PASSWORD: ${error.message}`);
-      res.status(error.jse_info.statusCode).json(error.jse_info.jsonResponse());
+      logger[level]({ err: addStackTrace ? error : undefined }, `AUTH-CTRL.FORGOT-PASSWORD: ${error.message}`);
+      return res.status(statusCode).json(jsonResponse);
     });
 
 /**
@@ -270,14 +256,12 @@ const resetPassword = (req, res) => {
       const tokenExpired = user && user.reset_password_expires < momentDate();
 
       if (!user || tokenExpired) {
-        const serviceError = new ServiceError({
+        const serviceError = {
           name: (!user) ? 'UserNotFound' : 'ExpiredToken',
-          info: {
-            statusCode: 403,
-            statusText: 'fail',
-            data: { user: 'A user does not exist for the given token or token expired' },
-          },
-        }, 'No user found with given token or token expired');
+          message: 'No user found with given token or token expired',
+          statusCode: 403,
+          data: { user: (!user) ? 'The user was not found' : 'The token has expired' },
+        };
 
         throw (serviceError);
       }
@@ -322,10 +306,10 @@ const resetPassword = (req, res) => {
     })
     .catch((err) => {
       const error = formatError(err);
-      const level = logger.determineLevel(error.jse_info.statusCode);
+      const { level, statusCode, jsonResponse, addStackTrace } = error.jse_info;
 
-      logger[level]({ err: error }, `AUTH-CTRL.RESET-PASSWORD: ${error.message}`);
-      res.status(error.jse_info.statusCode).json(error.jse_info.jsonResponse());
+      logger[level]({ err: addStackTrace ? error : undefined }, `AUTH-CTRL.RESET-PASSWORD: ${error.message}`);
+      return res.status(statusCode).json(jsonResponse);
     });
 };
 

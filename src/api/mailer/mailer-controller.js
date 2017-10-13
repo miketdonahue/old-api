@@ -1,7 +1,6 @@
 const logger = require('local-logger');
 const momentDate = require('moment');
 const config = require('config');
-const ServiceError = require('verror');
 const formatError = require('local-error-formatter');
 const emailClient = require('local-mailer');
 const User = require('../../models').user;
@@ -15,31 +14,43 @@ const User = require('../../models').user;
  * @param {Object} res - HTTP response
  * @returns {Object} - JSON response {status, data}
  */
-const confirmMail = (req, res) => {
+const confirmMail = (req, res) =>
   User.findOne({ where: { uid: req.body.uid } })
     .then((user) => {
       if (!user) {
-        const serviceError = new ServiceError({
+        const serviceError = {
           name: 'UserNotFound',
-          info: {
-            statusCode: 400,
-            statusText: 'fail',
-            data: { user: 'No user found with specified uid' },
-          },
-        }, `No user was found with uid: ${req.body.uid}`);
+          message: 'The user was not found',
+          statusCode: 400,
+          data: { user: 'No user found with specified uid' },
+        };
 
         throw (serviceError);
       }
 
-      logger.info({ uid: user.uid }, 'MAILER-CTRL.CONFIRM: Resending email for confirmation');
-
-      return emailClient.sendConfirmMail(user, (err, emailSent) => {
+      return emailClient.sendConfirmMail(user, (err, data) => {
         const userObj = user;
 
-        if (emailSent) {
+        if (err) {
+          const serviceError = {
+            name: err.name,
+            message: err.message,
+            errors: err.errors,
+          };
+
+          throw (serviceError);
+        }
+
+        if (data) {
           userObj.confirmed_expires = momentDate().add(config.tokens.confirmed.expireTime, 'h');
+
+          logger.info({
+            uid: user.uid,
+            results: data.results,
+          }, 'MAILER-CTRL.CONFIRM: Resent email for confirmation');
+
           return userObj.save(['confirmed_expires'])
-            .then(() => res.json({ status: 'success', data: {} }));
+            .then(() => res.json({ status: 'success', data: null }));
         }
 
         return undefined;
@@ -47,12 +58,11 @@ const confirmMail = (req, res) => {
     })
     .catch((err) => {
       const error = formatError(err);
-      const level = logger.determineLevel(error.jse_info.statusCode);
+      const { level, statusCode, jsonResponse } = error.jse_info;
 
-      logger[level]({ err: error }, `MAILER-CTRL.CONFIRM: ${error.message}`);
-      res.status(error.jse_info.statusCode).json(error.jse_info.jsonResponse());
+      logger[level]({ err: error, errors: err.errors }, `MAILER-CTRL.CONFIRM: ${error.message}`);
+      return res.status(statusCode).json(jsonResponse);
     });
-};
 
 module.exports = {
   confirmMail,

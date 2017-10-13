@@ -1,5 +1,4 @@
 const jwt = require('jsonwebtoken');
-const ServiceError = require('verror');
 const logger = require('local-logger');
 const config = require('config');
 
@@ -43,11 +42,7 @@ function verifyJwt() {
 
     return jwt.verify(token, config.jwt.secret, (err, decoded) => {
       if (err) {
-        const error = new ServiceError({
-          name: err.name,
-        }, err.message);
-
-        logger.warn({ err: error }, `VERIFY-JWT-MIDDLEWARE: ${error.message}`);
+        logger.warn(`VERIFY-JWT-MIDDLEWARE: ${err.message}`);
         return next(err);
       }
 

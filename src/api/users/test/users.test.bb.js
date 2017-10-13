@@ -28,6 +28,7 @@ describe('Black Box Test: Users', () => {
         .end((err, response) => {
           const body = response.body;
 
+          // TODO: to not have a fake key not in whitelist & to be in ASC order
           expect(body.status).to.equal('success');
           expect(body.data).to.have.all.keys('users');
           expect(body.data.users).to.be.an('array');
@@ -109,6 +110,7 @@ describe('Black Box Test: Users', () => {
           .end((err, response) => {
             const body = response.body;
 
+            // TODO: should only update what is in the whitelist & return what is in the whitelist
             expect(body.status).to.equal('success');
             expect(body.data).to.have.all.keys('user');
             expect(body.data.user).to.be.an('object');

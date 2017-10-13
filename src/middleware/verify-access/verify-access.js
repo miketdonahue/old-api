@@ -1,7 +1,6 @@
 const logger = require('local-logger');
 const config = require('config');
 const objectPath = require('object-path');
-const ServiceError = require('verror');
 const getPermissions = require('./access');
 
 /**
@@ -21,13 +20,13 @@ function verifyAccess(action, resource) {
     const paramsUid = objectPath.get(req, 'params.uid');
 
     if (!user) {
-      return next(new ServiceError({
+      const serviceError = {
         name: 'UserNotFound',
-        info: {
-          statusCode: 500,
-          statusText: 'fail',
-        },
-      }, 'No user was found on res.locals'));
+        message: 'No user was found on res.locals',
+        statusCode: 500,
+      };
+
+      return next(serviceError);
     }
 
     const permissions = getPermissions(user, resource, action, paramsUid);
@@ -37,17 +36,15 @@ function verifyAccess(action, resource) {
       return next();
     }
 
-    const error = new ServiceError({
+    const serviceError = {
       name: 'Unauthorized',
-      info: {
-        statusCode: 403,
-        statusText: 'fail',
-        data: { user: 'User does not have access to perform this action' },
-      },
-    }, `User is not authorized for this resource: ${user.uid}`);
+      message: 'The user is not authorized for this resource',
+      statusCode: 403,
+      data: { user: 'User does not have access to perform this action' },
+    };
 
-    logger.warn({ err: error }, `VERIFY-ACCESS-MIDDLEWARE: ${error.message}`);
-    return next(error);
+    logger.warn(`VERIFY-ACCESS-MIDDLEWARE: ${serviceError.message}`);
+    return next(serviceError);
   };
 }
 

@@ -1,5 +1,4 @@
 const logger = require('local-logger');
-const ServiceError = require('verror');
 const formatError = require('local-error-formatter');
 const modelUtils = require('../../utils/utils');
 const User = require('../../models').user;
@@ -24,18 +23,16 @@ const attrWhitelist = [
  * @param {Object} res - HTTP response
  * @returns {Object} - JSON response {status, data}
  */
-const list = (req, res) => {
+const list = (req, res) =>
   User.findAll({ order: [['last_name', 'ASC']], attributes: attrWhitelist })
     .then((users) => {
       if (!users.length) {
-        const serviceError = new ServiceError({
+        const serviceError = {
           name: 'NoUsersFound',
-          info: {
-            statusCode: 400,
-            statusText: 'fail',
-            data: { users: 'No users were found' },
-          },
-        }, 'No users exist or the query is incorrect');
+          message: 'No users exist',
+          statusCode: 400,
+          data: { users: 'No users were found' },
+        };
 
         throw (serviceError);
       }
@@ -45,12 +42,11 @@ const list = (req, res) => {
     })
     .catch((err) => {
       const error = formatError(err);
-      const level = logger.determineLevel(error.jse_info.statusCode);
+      const { level, statusCode, jsonResponse, addStackTrace } = error.jse_info;
 
-      logger[level]({ err: error }, `USER-CTRL.LIST: ${error.message}`);
-      res.status(error.jse_info.statusCode).json(error.jse_info.jsonResponse());
+      logger[level]({ err: addStackTrace ? error : undefined }, `USER-CTRL.LIST: ${error.message}`);
+      return res.status(statusCode).json(jsonResponse);
     });
-};
 
 /**
  * Show a specific user
@@ -61,18 +57,16 @@ const list = (req, res) => {
  * @param {Object} res - HTTP response
  * @returns {Object} - JSON response {status, data}
  */
-const show = (req, res) => {
+const show = (req, res) =>
   User.findOne({ where: { uid: req.params.uid }, attributes: attrWhitelist })
     .then((user) => {
       if (!user) {
-        const serviceError = new ServiceError({
+        const serviceError = {
           name: 'UserNotFound',
-          info: {
-            statusCode: 400,
-            statusText: 'fail',
-            data: { user: 'No user found with specified uid' },
-          },
-        }, `No user was found with uid: ${req.params.uid}`);
+          message: 'No user was found',
+          statusCode: 400,
+          data: { uid: 'The UID was not found' },
+        };
 
         throw (serviceError);
       }
@@ -82,12 +76,11 @@ const show = (req, res) => {
     })
     .catch((err) => {
       const error = formatError(err);
-      const level = logger.determineLevel(error.jse_info.statusCode);
+      const { level, statusCode, jsonResponse, addStackTrace } = error.jse_info;
 
-      logger[level]({ err: error }, `USER-CTRL.SHOW: ${error.message}`);
-      res.status(error.jse_info.statusCode).json(error.jse_info.jsonResponse());
+      logger[level]({ err: addStackTrace ? error : undefined }, `USER-CTRL.SHOW: ${error.message}`);
+      return res.status(statusCode).json(jsonResponse);
     });
-};
 
 /**
  * Update a specific user
@@ -107,17 +100,15 @@ const update = (req, res) => {
     password: req.body.password,
   };
 
-  User.findOne({ where: { uid: req.params.uid } })
+  return User.findOne({ where: { uid: req.params.uid } })
     .then((user) => {
       if (!user) {
-        const serviceError = new ServiceError({
+        const serviceError = {
           name: 'UserNotFound',
-          info: {
-            statusCode: 400,
-            statusText: 'fail',
-            data: { user: 'No user found with specified uid' },
-          },
-        }, `No user was found with uid: ${req.params.uid}`);
+          message: 'No user was found',
+          statusCode: 400,
+          data: { uid: 'The UID was not found' },
+        };
 
         throw (serviceError);
       }
@@ -169,10 +160,10 @@ const update = (req, res) => {
     })
     .catch((err) => {
       const error = formatError(err);
-      const level = logger.determineLevel(error.jse_info.statusCode);
+      const { level, statusCode, jsonResponse, addStackTrace } = error.jse_info;
 
-      logger[level]({ err: error }, `USER-CTRL.UPDATE: ${error.message}`);
-      res.status(error.jse_info.statusCode).json(error.jse_info.jsonResponse());
+      logger[level]({ err: addStackTrace ? error : undefined }, `USER-CTRL.UPDATE: ${error.message}`);
+      return res.status(statusCode).json(jsonResponse);
     });
 };
 
@@ -185,18 +176,16 @@ const update = (req, res) => {
  * @param {Object} res - HTTP response
  * @returns {Object} - JSON response {status, data}
  */
-const destroy = (req, res) => {
+const destroy = (req, res) =>
   User.findOne({ where: { uid: req.params.uid } })
     .then((user) => {
       if (!user) {
-        const serviceError = new ServiceError({
+        const serviceError = {
           name: 'UserNotFound',
-          info: {
-            statusCode: 400,
-            statusText: 'fail',
-            data: { user: 'No user found with specified uid' },
-          },
-        }, `No user was found with uid: ${req.params.uid}`);
+          message: 'No user was found',
+          statusCode: 400,
+          data: { uid: 'The UID was not found' },
+        };
 
         throw (serviceError);
       }
@@ -209,17 +198,16 @@ const destroy = (req, res) => {
 
       return res.json({
         status: 'success',
-        data: { user: modelUtils.responseData(attrWhitelist, deletedUser) },
+        data: null,
       });
     })
     .catch((err) => {
       const error = formatError(err);
-      const level = logger.determineLevel(error.jse_info.statusCode);
+      const { level, statusCode, jsonResponse, addStackTrace } = error.jse_info;
 
-      logger[level]({ err: error }, `USER-CTRL.DESTROY: ${error.message}`);
-      res.status(error.jse_info.statusCode).json(error.jse_info.jsonResponse());
+      logger[level]({ err: addStackTrace ? error : undefined }, `USER-CTRL.DESTROY: ${error.message}`);
+      return res.status(statusCode).json(jsonResponse);
     });
-};
 
 module.exports = {
   list,

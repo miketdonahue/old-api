@@ -30,8 +30,8 @@ describe('Unit Test: Auth', () => {
         sendResetPasswordMail: sinon.spy(),
       },
       logger: {
-        determineLevel: sinon.stub().returns('info'),
         info: sinon.spy(),
+        warn: sinon.spy(),
         error: sinon.spy(),
       },
       jsonwebtoken: {
@@ -119,9 +119,9 @@ describe('Unit Test: Auth', () => {
 
         expect(status).to.equal(400);
         expect(response.status).to.equal('fail');
-        expect(response).to.have.all.keys('status', 'code', 'data');
+        expect(response).to.have.all.keys('status', 'name', 'data');
         expect(response.data).to.have.all.keys('email');
-        expect(response.code).to.equal('UserExists');
+        expect(response.name).to.equal('UserExists');
       });
     });
   });
@@ -181,9 +181,9 @@ describe('Unit Test: Auth', () => {
 
         expect(status).to.equal(403);
         expect(response.status).to.equal('fail');
-        expect(response).to.have.all.keys('status', 'code', 'data');
+        expect(response).to.have.all.keys('status', 'name', 'data');
         expect(response.data).to.have.all.keys('user');
-        expect(response.code).to.equal('UserNotFound');
+        expect(response.name).to.equal('UserNotFound');
       });
     });
 
@@ -212,9 +212,9 @@ describe('Unit Test: Auth', () => {
 
         expect(status).to.equal(403);
         expect(response.status).to.equal('fail');
-        expect(response).to.have.all.keys('status', 'code', 'data');
+        expect(response).to.have.all.keys('status', 'name', 'data');
         expect(response.data).to.have.all.keys('user');
-        expect(response.code).to.equal('ExpiredToken');
+        expect(response.name).to.equal('ExpiredToken');
       });
     });
   });
@@ -288,9 +288,9 @@ describe('Unit Test: Auth', () => {
 
         expect(status).to.equal(400);
         expect(response.status).to.equal('fail');
-        expect(response).to.have.all.keys('status', 'code', 'data');
+        expect(response).to.have.all.keys('status', 'name', 'data');
         expect(response.data).to.have.all.keys('email');
-        expect(response.code).to.equal('EmailNotFound');
+        expect(response.name).to.equal('EmailNotFound');
       });
     });
 
@@ -322,9 +322,9 @@ describe('Unit Test: Auth', () => {
 
         expect(status).to.equal(400);
         expect(response.status).to.equal('fail');
-        expect(response).to.have.all.keys('status', 'code', 'data');
+        expect(response).to.have.all.keys('status', 'name', 'data');
         expect(response.data).to.have.all.keys('email');
-        expect(response.code).to.equal('EmailNotConfirmed');
+        expect(response.name).to.equal('EmailNotConfirmed');
       });
     });
 
@@ -358,9 +358,9 @@ describe('Unit Test: Auth', () => {
 
         expect(status).to.equal(400);
         expect(response.status).to.equal('fail');
-        expect(response).to.have.all.keys('status', 'code', 'data');
-        expect(response.data).to.have.all.keys('password');
-        expect(response.code).to.equal('InvalidCredentials');
+        expect(response).to.have.all.keys('status', 'name', 'data');
+        expect(response.data).to.have.all.keys('user');
+        expect(response.name).to.equal('InvalidCredentials');
       });
     });
 
@@ -401,10 +401,9 @@ describe('Unit Test: Auth', () => {
         expect(mock.jsonwebtoken.sign.calledOnce).to.be.true;
 
         expect(status).to.equal(500);
-        expect(response.status).to.equal('fail');
-        expect(response).to.have.all.keys('status', 'message', 'code', 'data');
-        expect(response.code).to.equal('Error');
-        expect(response.data).to.be.an('array').that.is.empty;
+        expect(response.status).to.equal('error');
+        expect(response).to.have.all.keys('status', 'name', 'message');
+        expect(response.name).to.equal('Error');
       });
     });
   });
@@ -473,9 +472,9 @@ describe('Unit Test: Auth', () => {
 
         expect(status).to.equal(400);
         expect(response.status).to.equal('fail');
-        expect(response).to.have.all.keys('status', 'code', 'data');
+        expect(response).to.have.all.keys('status', 'name', 'data');
         expect(response.data).to.have.all.keys('email');
-        expect(response.code).to.equal('EmailNotFound');
+        expect(response.name).to.equal('EmailNotFound');
       });
     });
 
@@ -504,9 +503,9 @@ describe('Unit Test: Auth', () => {
 
         expect(status).to.equal(400);
         expect(response.status).to.equal('fail');
-        expect(response).to.have.all.keys('status', 'code', 'data');
+        expect(response).to.have.all.keys('status', 'name', 'data');
         expect(response.data).to.have.all.keys('email');
-        expect(response.code).to.equal('EmailNotConfirmed');
+        expect(response.name).to.equal('EmailNotConfirmed');
       });
     });
   });
@@ -577,9 +576,9 @@ describe('Unit Test: Auth', () => {
 
         expect(status).to.equal(403);
         expect(response.status).to.equal('fail');
-        expect(response).to.have.all.keys('status', 'code', 'data');
+        expect(response).to.have.all.keys('status', 'name', 'data');
         expect(response.data).to.have.all.keys('user');
-        expect(response.code).to.equal('UserNotFound');
+        expect(response.name).to.equal('UserNotFound');
       });
     });
 
@@ -612,9 +611,9 @@ describe('Unit Test: Auth', () => {
 
         expect(status).to.equal(403);
         expect(response.status).to.equal('fail');
-        expect(response).to.have.all.keys('status', 'code', 'data');
+        expect(response).to.have.all.keys('status', 'name', 'data');
         expect(response.data).to.have.all.keys('user');
-        expect(response.code).to.equal('ExpiredToken');
+        expect(response.name).to.equal('ExpiredToken');
       });
     });
 
