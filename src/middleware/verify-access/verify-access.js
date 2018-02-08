@@ -6,7 +6,6 @@ const getPermissions = require('./access');
 /**
  * Verify access via RBAC
  *
- * @description Ensure a user has access to the resource requested based on their role
  * @function
  * @param {String} action - the CRUD action being performed by the requested route
  * @param {String} resource - the name of the route resource

@@ -17,7 +17,6 @@ const attrWhitelist = [
 /**
  * List all users
  *
- * @description All users found will be listed by last name in ASC order
  * @function
  * @param {Object} req - HTTP request
  * @param {Object} res - HTTP response
@@ -51,7 +50,6 @@ const list = (req, res) =>
 /**
  * Show a specific user
  *
- * @description Given a user UID a whitelist of attributes will be sent for that user
  * @function
  * @param {Object} req - HTTP request
  * @param {Object} res - HTTP response
@@ -85,7 +83,6 @@ const show = (req, res) =>
 /**
  * Update a specific user
  *
- * @description Will update a user given a UID; Whitelist of body attributes
  * @function
  * @param {Object} req - HTTP request
  * @param {Object} res - HTTP response
@@ -170,7 +167,6 @@ const update = (req, res) => {
 /**
  * Delete a specific user
  *
- * @description Sets deleted_at field to a date
  * @function
  * @param {Object} req - HTTP request
  * @param {Object} res - HTTP response
