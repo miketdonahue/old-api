@@ -9,13 +9,13 @@ const User = require('../../../models').user;
 
 describe('Black Box Test: Users', () => {
   beforeEach((done) => {
-    exec('yarn seed', (error) => {
+    exec('NODE_ENV=test yarn seed', (error) => {
       done(error);
     });
   });
 
   afterEach((done) => {
-    exec('yarn seed:undo:all', (error) => {
+    exec('NODE_ENV=test yarn seed:undo:all', (error) => {
       done(error);
     });
   });
@@ -50,9 +50,9 @@ describe('Black Box Test: Users', () => {
             const body = response.body;
 
             expect(body.status).to.equal('fail');
-            expect(body).to.have.all.keys('status', 'code', 'data');
+            expect(body).to.have.all.keys('status', 'name', 'data');
             expect(body.data).to.have.all.keys('users');
-            expect(body.code).to.equal('NoUsersFound');
+            expect(body.name).to.equal('NoUsersFound');
 
             done(err);
           });
@@ -88,9 +88,9 @@ describe('Black Box Test: Users', () => {
           const body = response.body;
 
           expect(body.status).to.equal('fail');
-          expect(body).to.have.all.keys('status', 'code', 'data');
-          expect(body.data).to.have.all.keys('user');
-          expect(body.code).to.equal('UserNotFound');
+          expect(body).to.have.all.keys('status', 'name', 'data');
+          expect(body.data).to.have.all.keys('uid');
+          expect(body.name).to.equal('UserNotFound');
 
           done(err);
         });
@@ -131,9 +131,9 @@ describe('Black Box Test: Users', () => {
           const body = response.body;
 
           expect(body.status).to.equal('fail');
-          expect(body).to.have.all.keys('status', 'code', 'data');
-          expect(body.data).to.have.all.keys('user');
-          expect(body.code).to.equal('UserNotFound');
+          expect(body).to.have.all.keys('status', 'name', 'data');
+          expect(body.data).to.have.all.keys('uid');
+          expect(body.name).to.equal('UserNotFound');
 
           done(err);
         });
@@ -150,10 +150,7 @@ describe('Black Box Test: Users', () => {
             const body = response.body;
 
             expect(body.status).to.equal('success');
-            expect(body.data).to.have.all.keys('user');
-            expect(body.data.user).to.be.an('object');
-            expect(body.data.user).to.have.all.keys('uid', 'first_name', 'last_name', 'email', 'last_visit', 'created_at', 'updated_at', 'deleted_at');
-            expect(body.data.user.deleted_at).to.not.be.null;
+            expect(body.data).to.be.null;
 
             done(err);
           });
@@ -168,9 +165,9 @@ describe('Black Box Test: Users', () => {
           const body = response.body;
 
           expect(body.status).to.equal('fail');
-          expect(body).to.have.all.keys('status', 'code', 'data');
-          expect(body.data).to.have.all.keys('user');
-          expect(body.code).to.equal('UserNotFound');
+          expect(body).to.have.all.keys('status', 'name', 'data');
+          expect(body.data).to.have.all.keys('uid');
+          expect(body.name).to.equal('UserNotFound');
 
           done(err);
         });
