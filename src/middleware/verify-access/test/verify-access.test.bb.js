@@ -10,13 +10,13 @@ const User = require('../../../models').user;
 
 describe('Black Box Test: Verify-Access', () => {
   beforeEach((done) => {
-    exec('yarn seed', (error) => {
+    exec('NODE_ENV=test yarn seed', (error) => {
       done(error);
     });
   });
 
   afterEach((done) => {
-    exec('yarn seed:undo:all', (error) => {
+    exec('NODE_ENV=test yarn seed:undo:all', (error) => {
       done(error);
     });
   });
@@ -99,9 +99,9 @@ describe('Black Box Test: Verify-Access', () => {
                   const resBody = res.body;
 
                   expect(resBody.status).to.equal('fail');
-                  expect(resBody).to.have.all.keys('status', 'code', 'data');
+                  expect(resBody).to.have.all.keys('status', 'name', 'data');
                   expect(resBody.data).to.have.all.keys('user');
-                  expect(resBody.code).to.equal('Unauthorized');
+                  expect(resBody.name).to.equal('Unauthorized');
 
                   done(e);
                 });

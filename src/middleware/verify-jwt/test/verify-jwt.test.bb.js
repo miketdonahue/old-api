@@ -10,13 +10,13 @@ const User = require('../../../models').user;
 
 describe('Black Box Test: Verify-Jwt', () => {
   beforeEach((done) => {
-    exec('yarn seed', (error) => {
+    exec('NODE_ENV=test yarn seed', (error) => {
       done(error);
     });
   });
 
   afterEach((done) => {
-    exec('yarn seed:undo:all', (error) => {
+    exec('NODE_ENV=test yarn seed:undo:all', (error) => {
       done(error);
     });
   });
@@ -83,16 +83,13 @@ describe('Black Box Test: Verify-Jwt', () => {
             .end(() => {
               request
                 .get(`/api/users/${user.uid}`)
-                .set('Authorization', 'Bearer malformed')
-                .expect(401)
+                .expect(500)
                 .end((err, response) => {
                   const body = response.body;
 
-                  expect(body.status).to.equal('fail');
-                  expect(body).to.have.all.keys('status', 'code', 'data');
-                  expect(body.data).to.have.all.keys('jwt');
-                  expect(body.code).to.equal('JsonWebTokenError');
-                  expect(body.data.jwt).to.equal('jwt malformed');
+                  expect(body.status).to.equal('error');
+                  expect(body).to.have.all.keys('status', 'name', 'message');
+                  expect(body.name).to.equal('JsonWebTokenError');
 
                   done(err);
                 });
