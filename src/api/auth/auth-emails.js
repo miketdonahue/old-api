@@ -3,7 +3,6 @@ const mailer = require('local-mailer');
 /**
  * Send confirmation email
  *
- * @description Using local-mailer, send an email with confirmation options
  * @function
  * @param {Object} user - Information about the user
  * @param {Object} callback - [err, data]
@@ -25,7 +24,6 @@ function sendConfirmMail(user, callback) {
 /**
  * Send new user welcome email
  *
- * @description Using local-mailer, send an email with welcome options
  * @function
  * @param {Object} user - Information about the user
  * @param {Object} callback - [err, data]
@@ -46,7 +44,6 @@ function sendWelcomeMail(user, callback) {
 /**
  * Send reset password email
  *
- * @description Using local-mailer, send an email with reset password options
  * @function
  * @param {Object} user - Information about the user
  * @param {Object} callback - [err, data]
