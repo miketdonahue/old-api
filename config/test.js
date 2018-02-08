@@ -7,5 +7,5 @@ module.exports = {
   },
   jwt: false,
   verifyAccess: false,
-  transactionalEmails: false,
+  sendEmails: false,
 };

@@ -8,7 +8,7 @@ module.exports = {
     secret: process.env.JWT_SECRET,
     expireTime: '1h',
   },
-  transactionalEmails: true,
+  sendEmails: true,
   tokens: {
     passwordReset: {
       expireTime: 2, // time in hours
