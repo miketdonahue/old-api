@@ -325,12 +325,12 @@ const resetPassword = (req, res) => {
 const resendConfirmation = (req, res) =>
   User.findOne({ where: { uid: req.body.uid } })
     .then((user) => {
-      if (!user) {
+      if (!user || user.confirmed) {
         const serviceError = {
-          name: 'UserNotFound',
-          message: 'The user was not found',
+          name: (!user) ? 'UserNotFound' : 'UserConfirmed',
+          message: 'The user was not found or user is already confirmed',
           statusCode: 400,
-          data: { user: 'No user found with specified uid' },
+          data: { email: (!user) ? 'The user does not exist' : 'The user is already confirmed' },
         };
 
         throw (serviceError);
