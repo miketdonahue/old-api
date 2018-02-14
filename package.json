@@ -47,7 +47,7 @@
   "main": "src/app.js",
   "repository": {
     "type": "git",
-    "url": "https://github.com/sidewalksalsa/node_api.git"
+    "url": "https://github.com/sidewalksalsa/node-api.git"
   },
   "dependencies": {
     "accesscontrol": "^1.5.3",
