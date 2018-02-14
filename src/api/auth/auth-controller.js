@@ -39,30 +39,26 @@ const signup = (req, res) =>
     })
     .then((user) => {
       if (user) {
-        emailClient.sendConfirmMail(user);
-
         logger.info({ uid: user.uid }, 'AUTH-CTRL.SIGNUP: User created');
-        return res.status(201).json({
-          status: 'success',
-          data: { user: { uid: user.uid } },
-        });
+
+        return emailClient.sendConfirmMail(user);
       }
 
       const serviceError = {
         name: 'UserExists',
-        message: 'This email already exists in the database; Duplicate user',
+        message: 'Duplicate email',
         statusCode: 400,
         data: { email: 'A user with this email has already been created' },
       };
 
       throw (serviceError);
     })
-    .catch((err) => {
-      const error = formatError(err);
-      const { level, statusCode, jsonResponse, addStackTrace } = error.jse_info;
+    .then(({ user }) => res.status(201).json({ status: 'success', data: { user: { uid: user.uid } } }))
+    .catch((error) => {
+      const err = formatError(error);
 
-      logger[level]({ err: addStackTrace ? error : undefined }, `AUTH-CTRL.SIGNUP: ${error.message}`);
-      return res.status(statusCode).json(jsonResponse);
+      logger[err.level]({ err: error, info: err.info }, `AUTH-CTRL.SIGNUP: ${err.message}`);
+      return res.status(err.statusCode).json(err.jsonResponse);
     });
 
 /**
@@ -104,12 +100,11 @@ const confirmAccount = (req, res) => {
       logger.info({ uid: updatedUser.uid }, 'AUTH-CTRL.CONFIRM-ACCOUNT: Account was confirmed');
       return res.json({ status: 'success', data: { user: { uid: updatedUser.uid } } });
     })
-    .catch((err) => {
-      const error = formatError(err);
-      const { level, statusCode, jsonResponse, addStackTrace } = error.jse_info;
+    .catch((error) => {
+      const err = formatError(error);
 
-      logger[level]({ err: addStackTrace ? error : undefined }, `AUTH-CTRL.CONFIRM-ACCOUNT: ${error.message}`);
-      return res.status(statusCode).json(jsonResponse);
+      logger[err.level]({ err: error, info: err.info }, `AUTH-CTRL.CONFIRM-ACCOUNT: ${err.message}`);
+      return res.status(err.statusCode).json(err.jsonResponse);
     });
 };
 
@@ -132,10 +127,10 @@ const login = (req, res) =>
 
       if (!user || !user.confirmed) {
         const serviceError = {
-          name: (!user) ? 'EmailNotFound' : 'EmailNotConfirmed',
-          message: 'Email does not exist or user email is not confirmed',
+          name: (!user) ? 'InvalidCredentials' : 'NotConfirmed',
+          message: 'Invalid credentials or user email is not confirmed',
           statusCode: 400,
-          data: { email: (!user) ? 'The email does not exist' : 'The email is not confirmed' },
+          data: { email: (!user) ? 'Credentials are invalid' : 'The email is not confirmed' },
         };
 
         throw (serviceError);
@@ -148,7 +143,7 @@ const login = (req, res) =>
       const user = obj;
 
       return user.comparePassword(req.body.password)
-        .then((isMatch) => {
+        .then(({ isMatch }) => {
           if (!isMatch) {
             const serviceError = {
               name: 'InvalidCredentials',
@@ -180,12 +175,11 @@ const login = (req, res) =>
         return res.json({ status: 'success', data: { token } });
       });
     })
-    .catch((err) => {
-      const error = formatError(err);
-      const { level, statusCode, jsonResponse, addStackTrace } = error.jse_info;
+    .catch((error) => {
+      const err = formatError(error);
 
-      logger[level]({ err: addStackTrace ? error : undefined }, `AUTH-CTRL.LOGIN: ${error.message}`);
-      return res.status(statusCode).json(jsonResponse);
+      logger[err.level]({ err: error, info: err.info }, `AUTH-CTRL.LOGIN: ${err.message}`);
+      return res.status(err.statusCode).json(err.jsonResponse);
     });
 
 /**
@@ -204,10 +198,10 @@ const forgotPassword = (req, res) =>
 
       if (!user || !user.confirmed) {
         const serviceError = {
-          name: (!user) ? 'EmailNotFound' : 'EmailNotConfirmed',
-          message: 'Email does not exist or user email is not confirmed',
+          name: (!user) ? 'InvalidCredentials' : 'EmailNotConfirmed',
+          message: 'Invalid credentials or user email is not confirmed',
           statusCode: 400,
-          data: { email: (!user) ? 'The email does not exist' : 'The email is not confirmed' },
+          data: { email: (!user) ? 'Credentials are invalid' : 'The email is not confirmed' },
         };
 
         throw (serviceError);
@@ -223,19 +217,15 @@ const forgotPassword = (req, res) =>
 
       user.reset_password_token = md5(user.password + Math.random());
       user.reset_password_expires = momentDate().add(config.tokens.passwordReset.expireTime, 'h');
-      return user.save(['reset_password_token', 'reset_password_expires'])
-        .then((updatedUser) => {
-          emailClient.sendResetPasswordMail(user);
-
-          return res.json({ status: 'success', data: { user: { uid: updatedUser.uid } } });
-        });
+      return user.save(['reset_password_token', 'reset_password_expires']);
     })
-    .catch((err) => {
-      const error = formatError(err);
-      const { level, statusCode, jsonResponse, addStackTrace } = error.jse_info;
+    .then(updatedUser => emailClient.sendResetPasswordMail(updatedUser))
+    .then(({ user }) => res.json({ status: 'success', data: { user: { uid: user.uid } } }))
+    .catch((error) => {
+      const err = formatError(error);
 
-      logger[level]({ err: addStackTrace ? error : undefined }, `AUTH-CTRL.FORGOT-PASSWORD: ${error.message}`);
-      return res.status(statusCode).json(jsonResponse);
+      logger[err.level]({ err: error, info: err.info }, `AUTH-CTRL.FORGOT-PASSWORD: ${err.message}`);
+      return res.status(err.statusCode).json(err.jsonResponse);
     });
 
 /**
@@ -257,10 +247,10 @@ const resetPassword = (req, res) => {
 
       if (!user || tokenExpired) {
         const serviceError = {
-          name: (!user) ? 'UserNotFound' : 'ExpiredToken',
-          message: 'No user found with given token or token expired',
+          name: (!user) ? 'InvalidCredentials' : 'ExpiredToken',
+          message: 'Invalid credentials or token expired',
           statusCode: 403,
-          data: { user: (!user) ? 'The user was not found' : 'The token has expired' },
+          data: { user: (!user) ? 'Credentials are invalid' : 'The token has expired' },
         };
 
         throw (serviceError);
@@ -274,8 +264,8 @@ const resetPassword = (req, res) => {
       logger.info({ uid: user.uid }, 'AUTH-CTRL.RESET-PASSWORD: Updating user attributes');
 
       return user.comparePassword(req.body.password)
-        .then((passwordMatch) => {
-          if (passwordMatch) return ({ user, passwordMatch });
+        .then(({ isMatch }) => {
+          if (isMatch) return ({ user, isMatch });
 
           return { user };
         });
@@ -283,7 +273,7 @@ const resetPassword = (req, res) => {
     .then((obj) => {
       const user = obj.user;
 
-      if (!obj.passwordMatch) {
+      if (!obj.isMatch) {
         return user.hashPassword(req.body.password)
           .then((hash) => {
             user.password = hash;
@@ -304,12 +294,11 @@ const resetPassword = (req, res) => {
 
       return res.json({ status: 'success', data: { user: { uid: updatedUser.uid } } });
     })
-    .catch((err) => {
-      const error = formatError(err);
-      const { level, statusCode, jsonResponse, addStackTrace } = error.jse_info;
+    .catch((error) => {
+      const err = formatError(error);
 
-      logger[level]({ err: addStackTrace ? error : undefined }, `AUTH-CTRL.RESET-PASSWORD: ${error.message}`);
-      return res.status(statusCode).json(jsonResponse);
+      logger[err.level]({ err: error, info: err.info }, `AUTH-CTRL.RESET-PASSWORD: ${err.message}`);
+      return res.status(err.statusCode).json(err.jsonResponse);
     });
 };
 
@@ -327,49 +316,31 @@ const resendConfirmation = (req, res) =>
     .then((user) => {
       if (!user || user.confirmed) {
         const serviceError = {
-          name: (!user) ? 'UserNotFound' : 'UserConfirmed',
-          message: 'The user was not found or user is already confirmed',
+          name: (!user) ? 'InvalidCredentials' : 'UserConfirmed',
+          message: 'Invalid credentials or user is already confirmed',
           statusCode: 400,
-          data: { email: (!user) ? 'The user does not exist' : 'The user is already confirmed' },
+          data: { email: (!user) ? 'Credentials are invalid' : 'The user is already confirmed' },
         };
 
         throw (serviceError);
       }
 
-      return emailClient.sendConfirmMail(user, (err, data) => {
-        const userObj = user;
-
-        if (err) {
-          const serviceError = {
-            name: err.name,
-            message: err.message,
-            errors: err.errors,
-          };
-
-          throw (serviceError);
-        }
-
-        if (data) {
-          userObj.confirmed_expires = momentDate().add(config.tokens.confirmed.expireTime, 'h');
-
-          logger.info({
-            uid: user.uid,
-            results: data.results,
-          }, 'AUTH-CTRL.RECONFIRM: Resent email for confirmation');
-
-          return userObj.save(['confirmed_expires'])
-            .then(() => res.json({ status: 'success', data: null }));
-        }
-
-        return undefined;
-      });
+      return emailClient.sendConfirmMail(user);
     })
-    .catch((err) => {
-      const error = formatError(err);
-      const { level, statusCode, jsonResponse } = error.jse_info;
+    .then(({ user }) => {
+      const userObj = user;
 
-      logger[level]({ err: error, errors: err.errors }, `AUTH-CTRL.RECONFIRM: ${error.message}`);
-      return res.status(statusCode).json(jsonResponse);
+      logger.info({ uid: user.uid }, 'AUTH-CTRL.RECONFIRM: Resent email for confirmation');
+
+      userObj.confirmed_expires = momentDate().add(config.tokens.confirmed.expireTime, 'h');
+      return userObj.save(['confirmed_expires']);
+    })
+    .then(() => res.json({ status: 'success', data: null }))
+    .catch((error) => {
+      const err = formatError(error);
+
+      logger[err.level]({ err: error, info: err.info }, `AUTH-CTRL.RECONFIRM: ${err.message}`);
+      return res.status(err.statusCode).json(err.jsonResponse);
     });
 
 module.exports = {
