@@ -39,12 +39,11 @@ const list = (req, res) =>
       logger.info('USER-CTRL.LIST: Listing all users');
       return res.json({ status: 'success', data: { users } });
     })
-    .catch((err) => {
-      const error = formatError(err);
-      const { level, statusCode, jsonResponse, addStackTrace } = error.jse_info;
+    .catch((error) => {
+      const err = formatError(error);
 
-      logger[level]({ err: addStackTrace ? error : undefined }, `USER-CTRL.LIST: ${error.message}`);
-      return res.status(statusCode).json(jsonResponse);
+      logger[err.level]({ err: error, info: err.info }, `USER-CTRL.LIST: ${err.message}`);
+      return res.status(err.statusCode).json(err.jsonResponse);
     });
 
 /**
@@ -72,12 +71,11 @@ const show = (req, res) =>
       logger.info({ uid: user.uid }, 'USER-CTRL.SHOW: Retrieving user');
       return res.json({ status: 'success', data: { user } });
     })
-    .catch((err) => {
-      const error = formatError(err);
-      const { level, statusCode, jsonResponse, addStackTrace } = error.jse_info;
+    .catch((error) => {
+      const err = formatError(error);
 
-      logger[level]({ err: addStackTrace ? error : undefined }, `USER-CTRL.SHOW: ${error.message}`);
-      return res.status(statusCode).json(jsonResponse);
+      logger[err.level]({ err: error, info: err.info }, `USER-CTRL.SHOW: ${err.message}`);
+      return res.status(err.statusCode).json(err.jsonResponse);
     });
 
 /**
@@ -113,20 +111,16 @@ const update = (req, res) => {
       logger.info({ uid: user.uid }, 'USER-CTRL.UPDATE: Updating user');
 
       if (!body.password) return { user };
-
-      return user.comparePassword(body.password)
-        .then((isMatch) => {
-          if (isMatch) {
-            body.password = undefined;
-          }
-
-          return { user, isMatch };
-        });
+      return user.comparePassword(body.password);
     })
-    .then((userData) => {
-      const { user } = userData;
-      const passwordMatch = userData.isMatch;
+    .then(({ isMatch, user }) => {
+      if (isMatch) {
+        body.password = undefined;
+      }
 
+      return { isMatch, user };
+    })
+    .then(({ isMatch, user }) => {
       logger.info({ uid: user.uid }, 'USER-CTRL.UPDATE: Preparing body');
 
       // Add fields to be updated to array
@@ -134,7 +128,7 @@ const update = (req, res) => {
         if (body[key] !== undefined) fieldsToUpdate.push(key);
       });
 
-      if (passwordMatch === false) {
+      if (isMatch === false) {
         return user.hashPassword(req.body.password)
           .then((hash) => {
             body.password = hash;
@@ -144,23 +138,20 @@ const update = (req, res) => {
 
       return user;
     })
-    .then((user) => {
-      user.update(body, { fields: fieldsToUpdate })
-        .then((updatedUser) => {
-          logger.info({ uid: updatedUser.uid }, 'USER-CTRL.UPDATE: Updated user');
+    .then(user => user.update(body, { fields: fieldsToUpdate }))
+    .then((updatedUser) => {
+      logger.info({ uid: updatedUser.uid }, 'USER-CTRL.UPDATE: Updated user');
 
-          return res.json({
-            status: 'success',
-            data: { user: modelUtils.responseData(attrWhitelist, updatedUser) },
-          });
-        });
+      return res.json({
+        status: 'success',
+        data: { user: modelUtils.responseData(attrWhitelist, updatedUser) },
+      });
     })
-    .catch((err) => {
-      const error = formatError(err);
-      const { level, statusCode, jsonResponse, addStackTrace } = error.jse_info;
+    .catch((error) => {
+      const err = formatError(error);
 
-      logger[level]({ err: addStackTrace ? error : undefined }, `USER-CTRL.UPDATE: ${error.message}`);
-      return res.status(statusCode).json(jsonResponse);
+      logger[err.level]({ err: error, info: err.info }, `USER-CTRL.UPDATE: ${err.message}`);
+      return res.status(err.statusCode).json(err.jsonResponse);
     });
 };
 
@@ -197,12 +188,11 @@ const destroy = (req, res) =>
         data: null,
       });
     })
-    .catch((err) => {
-      const error = formatError(err);
-      const { level, statusCode, jsonResponse, addStackTrace } = error.jse_info;
+    .catch((error) => {
+      const err = formatError(error);
 
-      logger[level]({ err: addStackTrace ? error : undefined }, `USER-CTRL.DESTROY: ${error.message}`);
-      return res.status(statusCode).json(jsonResponse);
+      logger[err.level]({ err: error, info: err.info }, `USER-CTRL.DESTROY: ${err.message}`);
+      return res.status(err.statusCode).json(err.jsonResponse);
     });
 
 module.exports = {

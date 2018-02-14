@@ -178,7 +178,8 @@ module.exports = (sequelize, DataTypes) => {
   User.prototype.hashPassword = password => bcrypt.hash(password, 10).then(hash => hash);
 
   User.prototype.comparePassword = function comparePassword(userPassword) {
-    return bcrypt.compare(userPassword, this.password).then(isMatch => isMatch);
+    return bcrypt.compare(userPassword, this.password).then(isMatch =>
+      ({ isMatch, user: this }));
   };
 
   // Hooks

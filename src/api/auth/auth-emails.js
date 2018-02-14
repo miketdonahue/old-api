@@ -5,10 +5,9 @@ const mailer = require('local-mailer');
  *
  * @function
  * @param {Object} user - Information about the user
- * @param {Object} callback - [err, data]
  * @returns {Promise} - Send email
  */
-function sendConfirmMail(user, callback) {
+function sendConfirmMail(user) {
   const options = {
     campaignId: 'signup-confirmation',
     templateId: 'signup-confirmation',
@@ -18,7 +17,7 @@ function sendConfirmMail(user, callback) {
     },
   };
 
-  return mailer.send(user, options, callback);
+  return mailer.send(user, options);
 }
 
 /**
@@ -26,10 +25,9 @@ function sendConfirmMail(user, callback) {
  *
  * @function
  * @param {Object} user - Information about the user
- * @param {Object} callback - [err, data]
  * @returns {Promise} - Send email
  */
-function sendWelcomeMail(user, callback) {
+function sendWelcomeMail(user) {
   const options = {
     campaignId: 'welcome',
     templateId: 'welcome',
@@ -38,7 +36,7 @@ function sendWelcomeMail(user, callback) {
     },
   };
 
-  return mailer.send(user, options, callback);
+  return mailer.send(user, options);
 }
 
 /**
@@ -46,10 +44,9 @@ function sendWelcomeMail(user, callback) {
  *
  * @function
  * @param {Object} user - Information about the user
- * @param {Object} callback - [err, data]
  * @returns {Promise} - Send email
  */
-function sendResetPasswordMail(user, callback) {
+function sendResetPasswordMail(user) {
   const options = {
     campaignId: 'reset-password',
     templateId: 'reset-password',
@@ -59,7 +56,7 @@ function sendResetPasswordMail(user, callback) {
     },
   };
 
-  return mailer.send(user, options, callback);
+  return mailer.send(user, options);
 }
 
 module.exports = {

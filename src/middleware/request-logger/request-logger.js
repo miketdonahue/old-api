@@ -14,7 +14,7 @@ function requestLogger() {
     logger.info({
       req,
       res,
-    }, 'start page request');
+    }, 'start request');
 
     res.end = (...args) => {
       const diffTime = process.hrtime(startTime);
@@ -22,7 +22,7 @@ function requestLogger() {
 
       logger.info({
         responseTime: `${responseTime} ms`,
-      }, 'end page request');
+      }, 'end request');
 
       originalResEnd.apply(res, args);
     };

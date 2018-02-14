@@ -1,8 +1,8 @@
 {
-  "name": "teach-learn-api",
+  "name": "node-api",
   "version": "1.0.0",
-  "description": "Teach and Learn Anything",
-  "author": "Make It Count <mike@makeitcount.cc>",
+  "description": "Fully Featured Node.js API with SQL DB",
+  "author": "Mike Donahue <mtdonahue1@gmail.com>",
   "scripts": {
     "start:dev": "node src/app.js | bunyan",
     "start": "NODE_ENV=production node src/app.js | bunyan",
@@ -47,7 +47,7 @@
   "main": "src/app.js",
   "repository": {
     "type": "git",
-    "url": "https://github.com/sidewalksalsa/teach-learn-api.git"
+    "url": "https://github.com/sidewalksalsa/node_api.git"
   },
   "dependencies": {
     "accesscontrol": "^1.5.3",

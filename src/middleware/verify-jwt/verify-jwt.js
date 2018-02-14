@@ -26,43 +26,6 @@ function getTokenFromHeader(headers) {
 }
 
 /**
- * Determines the error attributes to be returned
- *
- * @function
- * @param {Object} err - Express.js err
- * @returns {Object} - Formatted error object
- */
-function determineError(err) {
-  const serviceError = {
-    name: err.name,
-    message: err.message,
-    data: { jwt: err.message },
-  };
-
-  switch (err.message) {
-    case 'jwt expired':
-      serviceError.statusCode = 401;
-      serviceError.data = { jwt: `Token expired at ${err.expiredAt}` };
-      break;
-    case 'jwt signature is required':
-      serviceError.statusCode = 401;
-      serviceError.data = { jwt: 'No token provided with request' };
-      break;
-    case 'jwt malformed':
-      serviceError.statusCode = 400;
-      break;
-    case 'invalid signature':
-      serviceError.statusCode = 400;
-      break;
-    default:
-      serviceError.statusCode = 500;
-      break;
-  }
-
-  return serviceError;
-}
-
-/**
  * Verifies the JWT and returns it or throws an error
  *
  * @function
@@ -76,10 +39,9 @@ function verifyJwt() {
 
     return jwt.verify(token, config.jwt.secret, (err, decoded) => {
       if (err) {
-        const serviceError = determineError(err);
-
         logger.warn(`VERIFY-JWT-MIDDLEWARE: ${err.message}`);
-        return next(serviceError);
+
+        return next(err);
       }
 
       logger.info('VERIFY-JWT-MIDDLEWARE: Returning token');
