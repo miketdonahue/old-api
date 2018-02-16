@@ -8,7 +8,6 @@ module.exports = {
     secret: process.env.JWT_SECRET,
     expireTime: '1h',
   },
-  sendEmails: true,
   tokens: {
     passwordReset: {
       expireTime: 2, // time in hours
@@ -16,6 +15,10 @@ module.exports = {
     confirmed: {
       expireTime: 2, // time in hours
     },
+  },
+  sendEmails: true,
+  mailer: {
+    domain: 'makeitcount.cc',
   },
   database: db.development,
   sqlLogging: console.log, // eslint-disable-line no-console
