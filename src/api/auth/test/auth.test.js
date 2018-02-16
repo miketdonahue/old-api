@@ -26,8 +26,8 @@ describe('Unit Test: Auth', () => {
         },
       },
       mailer: {
-        sendConfirmMail: sinon.spy(),
-        sendResetPasswordMail: sinon.spy(),
+        sendConfirmMail: sinon.stub(),
+        sendResetPasswordMail: sinon.stub(),
       },
       logger: {
         info: sinon.spy(),
@@ -69,6 +69,7 @@ describe('Unit Test: Auth', () => {
   describe('Signup', () => {
     it('should create a new user if the given email does not exist', () => {
       const userModel = mock.models.user;
+      const user = { uid: '123abc' };
       const req = {
         body: {
           email: 'mike@mail.com',
@@ -79,10 +80,10 @@ describe('Unit Test: Auth', () => {
         },
       };
 
+      mock.mailer.sendConfirmMail.resolves({ user });
+
       userModel.findOne.resolves(null);
-      userModel.create.resolves({
-        uid: '123abc',
-      });
+      userModel.create.resolves(user);
 
       return authController.signup(req, mock.res).then(() => {
         const status = mock.res.status.getCall(0).args[0];
@@ -122,7 +123,7 @@ describe('Unit Test: Auth', () => {
 
         expect(status).to.equal(400);
         expect(response.status).to.equal('fail');
-        expect(response).to.have.all.keys('status', 'name', 'data');
+        expect(response).to.have.all.keys('status', 'name', 'message', 'data');
         expect(response.data).to.have.all.keys('email');
         expect(response.name).to.equal('UserExists');
       });
@@ -184,7 +185,7 @@ describe('Unit Test: Auth', () => {
 
         expect(status).to.equal(403);
         expect(response.status).to.equal('fail');
-        expect(response).to.have.all.keys('status', 'name', 'data');
+        expect(response).to.have.all.keys('status', 'name', 'message', 'data');
         expect(response.data).to.have.all.keys('user');
         expect(response.name).to.equal('UserNotFound');
       });
@@ -215,7 +216,7 @@ describe('Unit Test: Auth', () => {
 
         expect(status).to.equal(403);
         expect(response.status).to.equal('fail');
-        expect(response).to.have.all.keys('status', 'name', 'data');
+        expect(response).to.have.all.keys('status', 'name', 'message', 'data');
         expect(response.data).to.have.all.keys('user');
         expect(response.name).to.equal('ExpiredToken');
       });
@@ -235,7 +236,6 @@ describe('Unit Test: Auth', () => {
       const user = {
         uid: '123abc',
         confirmed: true,
-        comparePassword: sinon.stub().resolves(true),
         save: sinon.stub().resolves({
           uid: '123abc',
           role: {
@@ -246,6 +246,7 @@ describe('Unit Test: Auth', () => {
         }),
       };
 
+      user.comparePassword = sinon.stub().resolves({ isMatch: true, user });
       userModel.findOne.resolves(user);
       mock.jsonwebtoken.sign.yields(null, 'jwtToken');
 
@@ -291,9 +292,9 @@ describe('Unit Test: Auth', () => {
 
         expect(status).to.equal(400);
         expect(response.status).to.equal('fail');
-        expect(response).to.have.all.keys('status', 'name', 'data');
+        expect(response).to.have.all.keys('status', 'name', 'message', 'data');
         expect(response.data).to.have.all.keys('email');
-        expect(response.name).to.equal('EmailNotFound');
+        expect(response.name).to.equal('InvalidCredentials');
       });
     });
 
@@ -325,9 +326,9 @@ describe('Unit Test: Auth', () => {
 
         expect(status).to.equal(400);
         expect(response.status).to.equal('fail');
-        expect(response).to.have.all.keys('status', 'name', 'data');
+        expect(response).to.have.all.keys('status', 'name', 'message', 'data');
         expect(response.data).to.have.all.keys('email');
-        expect(response.name).to.equal('EmailNotConfirmed');
+        expect(response.name).to.equal('NotConfirmed');
       });
     });
 
@@ -361,7 +362,7 @@ describe('Unit Test: Auth', () => {
 
         expect(status).to.equal(400);
         expect(response.status).to.equal('fail');
-        expect(response).to.have.all.keys('status', 'name', 'data');
+        expect(response).to.have.all.keys('status', 'name', 'message', 'data');
         expect(response.data).to.have.all.keys('user');
         expect(response.name).to.equal('InvalidCredentials');
       });
@@ -369,6 +370,9 @@ describe('Unit Test: Auth', () => {
 
     it('should throw an error if the JWT has an error', () => {
       const userModel = mock.models.user;
+      const error = {
+        name: 'JsonWebTokenError',
+      };
       const req = {
         body: {
           email: 'mike@mail.com',
@@ -379,7 +383,6 @@ describe('Unit Test: Auth', () => {
       const user = {
         uid: '123abc',
         confirmed: true,
-        comparePassword: sinon.stub().resolves(true),
         save: sinon.stub().resolves({
           uid: '123abc',
           role: {
@@ -390,8 +393,10 @@ describe('Unit Test: Auth', () => {
         }),
       };
 
+      user.comparePassword = sinon.stub().resolves({ isMatch: true, user });
       userModel.findOne.resolves(user);
-      mock.jsonwebtoken.sign.yields(new Error());
+
+      mock.jsonwebtoken.sign.yields(error);
 
       return authController.login(req, mock.res).then(() => {
         const status = mock.res.status.getCall(0).args[0];
@@ -403,10 +408,10 @@ describe('Unit Test: Auth', () => {
         expect(user.save.calledOnce).to.be.true;
         expect(mock.jsonwebtoken.sign.calledOnce).to.be.true;
 
-        expect(status).to.equal(500);
-        expect(response.status).to.equal('error');
-        expect(response).to.have.all.keys('status', 'name', 'message');
-        expect(response.name).to.equal('Error');
+        expect(status).to.equal(400);
+        expect(response.status).to.equal('fail');
+        expect(response).to.have.all.keys('status', 'name', 'message', 'data');
+        expect(response.name).to.equal('JsonWebTokenError');
       });
     });
   });
@@ -433,6 +438,8 @@ describe('Unit Test: Auth', () => {
           },
         }),
       };
+
+      mock.mailer.sendResetPasswordMail.resolves({ user });
 
       userModel.findOne.resolves(user);
 
@@ -475,9 +482,9 @@ describe('Unit Test: Auth', () => {
 
         expect(status).to.equal(400);
         expect(response.status).to.equal('fail');
-        expect(response).to.have.all.keys('status', 'name', 'data');
+        expect(response).to.have.all.keys('status', 'name', 'message', 'data');
         expect(response.data).to.have.all.keys('email');
-        expect(response.name).to.equal('EmailNotFound');
+        expect(response.name).to.equal('InvalidCredentials');
       });
     });
 
@@ -506,9 +513,9 @@ describe('Unit Test: Auth', () => {
 
         expect(status).to.equal(400);
         expect(response.status).to.equal('fail');
-        expect(response).to.have.all.keys('status', 'name', 'data');
+        expect(response).to.have.all.keys('status', 'name', 'message', 'data');
         expect(response.data).to.have.all.keys('email');
-        expect(response.name).to.equal('EmailNotConfirmed');
+        expect(response.name).to.equal('NotConfirmed');
       });
     });
   });
@@ -579,9 +586,9 @@ describe('Unit Test: Auth', () => {
 
         expect(status).to.equal(403);
         expect(response.status).to.equal('fail');
-        expect(response).to.have.all.keys('status', 'name', 'data');
+        expect(response).to.have.all.keys('status', 'name', 'message', 'data');
         expect(response.data).to.have.all.keys('user');
-        expect(response.name).to.equal('UserNotFound');
+        expect(response.name).to.equal('InvalidCredentials');
       });
     });
 
@@ -614,7 +621,7 @@ describe('Unit Test: Auth', () => {
 
         expect(status).to.equal(403);
         expect(response.status).to.equal('fail');
-        expect(response).to.have.all.keys('status', 'name', 'data');
+        expect(response).to.have.all.keys('status', 'name', 'message', 'data');
         expect(response.data).to.have.all.keys('user');
         expect(response.name).to.equal('ExpiredToken');
       });
@@ -634,11 +641,11 @@ describe('Unit Test: Auth', () => {
       const user = {
         uid: '123abc',
         reset_password_expires: momentDate().subtract(5, 'minutes').format(),
-        comparePassword: sinon.stub().resolves(true),
         hashPassword: sinon.stub(),
         save: sinon.stub().resolves({ uid: '123abc' }),
       };
 
+      user.comparePassword = sinon.stub().resolves({ isMatch: true, user });
       userModel.findOne.resolves(user);
 
       return authController.resetPassword(req, mock.res).then(() => {
@@ -672,8 +679,7 @@ describe('Unit Test: Auth', () => {
       };
 
       userModel.findOne.resolves(user);
-      mock.mailer.sendConfirmMail = sinon.stub();
-      mock.mailer.sendConfirmMail.yields(null, true);
+      mock.mailer.sendConfirmMail.resolves({ user });
 
       return authController.resendConfirmation(req, mock.res).then(() => {
         const response = mock.res.json.getCall(0).args[0];
@@ -713,14 +719,19 @@ describe('Unit Test: Auth', () => {
 
         expect(status).to.equal(400);
         expect(response.status).to.equal('fail');
-        expect(response).to.have.all.keys('status', 'name', 'data');
-        expect(response.data).to.have.all.keys('user');
-        expect(response.name).to.equal('UserNotFound');
+        expect(response).to.have.all.keys('status', 'name', 'message', 'data');
+        expect(response.data).to.have.all.keys('email');
+        expect(response.name).to.equal('InvalidCredentials');
       });
     });
 
     it('should throw an error if emailClient has an error', () => {
       const userModel = mock.models.user;
+      const error = {
+        name: 'SparkPostError',
+        statusCode: 500,
+        errors: [{}],
+      };
       const req = {
         body: {
           uid: '123abc',
@@ -732,8 +743,7 @@ describe('Unit Test: Auth', () => {
       };
 
       userModel.findOne.resolves(user);
-      mock.mailer.sendConfirmMail = sinon.stub();
-      mock.mailer.sendConfirmMail.yields(new Error('Error'));
+      mock.mailer.sendConfirmMail.rejects(error);
 
       return authController.resendConfirmation(req, mock.res).then(() => {
         const status = mock.res.status.getCall(0).args[0];
@@ -746,8 +756,8 @@ describe('Unit Test: Auth', () => {
 
         expect(status).to.equal(500);
         expect(response.status).to.equal('error');
-        expect(response).to.have.all.keys('status', 'name', 'message');
-        expect(response.name).to.equal('Error');
+        expect(response).to.have.all.keys('status', 'name', 'message', 'data');
+        expect(response.name).to.equal('SparkPostError');
       });
     });
   });

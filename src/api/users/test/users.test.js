@@ -75,7 +75,7 @@ describe('Unit Test: Users', () => {
 
         expect(status).to.equal(400);
         expect(response.status).to.equal('fail');
-        expect(response).to.have.all.keys('status', 'name', 'data');
+        expect(response).to.have.all.keys('status', 'name', 'message', 'data');
         expect(response.data).to.have.all.keys('users');
         expect(response.name).to.equal('NoUsersFound');
       });
@@ -124,7 +124,7 @@ describe('Unit Test: Users', () => {
 
         expect(status).to.equal(400);
         expect(response.status).to.equal('fail');
-        expect(response).to.have.all.keys('status', 'name', 'data');
+        expect(response).to.have.all.keys('status', 'name', 'message', 'data');
         expect(response.data).to.have.all.keys('uid');
         expect(response.name).to.equal('UserNotFound');
       });
@@ -148,11 +148,11 @@ describe('Unit Test: Users', () => {
 
       const user = {
         uid: '123abc',
-        comparePassword: sinon.stub().resolves(true),
         hashPassword: sinon.stub(),
         update: sinon.stub().resolves({ uid: '123abc' }),
       };
 
+      user.comparePassword = sinon.stub().resolves({ isMatch: true, user });
       userModel.findOne.resolves(user);
 
       return userController.update(req, mock.res).then(() => {
@@ -186,11 +186,11 @@ describe('Unit Test: Users', () => {
 
       const user = {
         uid: '123abc',
-        comparePassword: sinon.stub().resolves(false),
         hashPassword: sinon.stub().resolves('hash'),
         update: sinon.stub().resolves({ uid: '123abc' }),
       };
 
+      user.comparePassword = sinon.stub().resolves({ isMatch: false, user });
       userModel.findOne.resolves(user);
 
       return userController.update(req, mock.res).then(() => {
@@ -248,10 +248,10 @@ describe('Unit Test: Users', () => {
 
       const user = {
         uid: '123abc',
-        comparePassword: sinon.stub().resolves(true),
-        update: sinon.spy(),
+        update: sinon.stub().resolves({ uid: '123abc' }),
       };
 
+      user.comparePassword = sinon.stub().resolves({ isMatch: true, user });
       userModel.findOne.resolves(user);
 
       return userController.update(req, mock.res).then(() => {
@@ -314,7 +314,7 @@ describe('Unit Test: Users', () => {
 
         expect(status).to.equal(400);
         expect(response.status).to.equal('fail');
-        expect(response).to.have.all.keys('status', 'name', 'data');
+        expect(response).to.have.all.keys('status', 'name', 'message', 'data');
         expect(response.data).to.have.all.keys('uid');
         expect(response.name).to.equal('UserNotFound');
       });
@@ -367,7 +367,7 @@ describe('Unit Test: Users', () => {
 
         expect(status).to.equal(400);
         expect(response.status).to.equal('fail');
-        expect(response).to.have.all.keys('status', 'name', 'data');
+        expect(response).to.have.all.keys('status', 'name', 'message', 'data');
         expect(response.data).to.have.all.keys('uid');
         expect(response.name).to.equal('UserNotFound');
       });

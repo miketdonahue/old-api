@@ -50,7 +50,7 @@ describe('Black Box Test: Users', () => {
             const body = response.body;
 
             expect(body.status).to.equal('fail');
-            expect(body).to.have.all.keys('status', 'name', 'data');
+            expect(body).to.have.all.keys('status', 'name', 'data', 'message');
             expect(body.data).to.have.all.keys('users');
             expect(body.name).to.equal('NoUsersFound');
 
@@ -88,7 +88,7 @@ describe('Black Box Test: Users', () => {
           const body = response.body;
 
           expect(body.status).to.equal('fail');
-          expect(body).to.have.all.keys('status', 'name', 'data');
+          expect(body).to.have.all.keys('status', 'name', 'data', 'message');
           expect(body.data).to.have.all.keys('uid');
           expect(body.name).to.equal('UserNotFound');
 
@@ -131,7 +131,7 @@ describe('Black Box Test: Users', () => {
           const body = response.body;
 
           expect(body.status).to.equal('fail');
-          expect(body).to.have.all.keys('status', 'name', 'data');
+          expect(body).to.have.all.keys('status', 'name', 'data', 'message');
           expect(body.data).to.have.all.keys('uid');
           expect(body.name).to.equal('UserNotFound');
 
@@ -165,7 +165,7 @@ describe('Black Box Test: Users', () => {
           const body = response.body;
 
           expect(body.status).to.equal('fail');
-          expect(body).to.have.all.keys('status', 'name', 'data');
+          expect(body).to.have.all.keys('status', 'name', 'data', 'message');
           expect(body.data).to.have.all.keys('uid');
           expect(body.name).to.equal('UserNotFound');
 

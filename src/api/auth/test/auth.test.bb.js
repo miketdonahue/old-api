@@ -79,7 +79,7 @@ describe('Black Box Test: Auth', () => {
             const body = response.body;
 
             expect(body.status).to.equal('fail');
-            expect(body).to.have.all.keys('status', 'name', 'data');
+            expect(body).to.have.all.keys('status', 'name', 'data', 'message');
             expect(body.data).to.have.all.keys('email');
             expect(body.name).to.equal('UserExists');
 
@@ -124,7 +124,7 @@ describe('Black Box Test: Auth', () => {
             const body = response.body;
 
             expect(body.status).to.equal('fail');
-            expect(body).to.have.all.keys('status', 'name', 'data');
+            expect(body).to.have.all.keys('status', 'name', 'data', 'message');
             expect(body.data).to.have.all.keys('user');
             expect(body.name).to.equal('UserNotFound');
 
@@ -153,7 +153,7 @@ describe('Black Box Test: Auth', () => {
             const body = response.body;
 
             expect(body.status).to.equal('fail');
-            expect(body).to.have.all.keys('status', 'name', 'data');
+            expect(body).to.have.all.keys('status', 'name', 'data', 'message');
             expect(body.data).to.have.all.keys('user');
             expect(body.name).to.equal('ExpiredToken');
 
@@ -216,9 +216,9 @@ describe('Black Box Test: Auth', () => {
           const body = response.body;
 
           expect(body.status).to.equal('fail');
-          expect(body).to.have.all.keys('status', 'name', 'data');
+          expect(body).to.have.all.keys('status', 'name', 'data', 'message');
           expect(body.data).to.have.all.keys('email');
-          expect(body.name).to.equal('EmailNotFound');
+          expect(body.name).to.equal('InvalidCredentials');
 
           done(err);
         });
@@ -237,9 +237,9 @@ describe('Black Box Test: Auth', () => {
             const body = response.body;
 
             expect(body.status).to.equal('fail');
-            expect(body).to.have.all.keys('status', 'name', 'data');
+            expect(body).to.have.all.keys('status', 'name', 'data', 'message');
             expect(body.data).to.have.all.keys('email');
-            expect(body.name).to.equal('EmailNotConfirmed');
+            expect(body.name).to.equal('NotConfirmed');
 
             done(err);
           });
@@ -264,7 +264,7 @@ describe('Black Box Test: Auth', () => {
                 const resBody = res.body;
 
                 expect(resBody.status).to.equal('fail');
-                expect(resBody).to.have.all.keys('status', 'name', 'data');
+                expect(resBody).to.have.all.keys('status', 'name', 'data', 'message');
                 expect(resBody.data).to.have.all.keys('user');
                 expect(resBody.name).to.equal('InvalidCredentials');
 
@@ -292,7 +292,7 @@ describe('Black Box Test: Auth', () => {
                 const resBody = res.body;
 
                 expect(resBody.status).to.equal('error');
-                expect(resBody).to.have.all.keys('status', 'message', 'name');
+                expect(resBody).to.have.all.keys('status', 'message', 'name', 'data');
                 expect(resBody.name).to.equal('Error');
 
                 done(e);
@@ -353,9 +353,9 @@ describe('Black Box Test: Auth', () => {
           const body = response.body;
 
           expect(body.status).to.equal('fail');
-          expect(body).to.have.all.keys('status', 'name', 'data');
+          expect(body).to.have.all.keys('status', 'name', 'data', 'message');
           expect(body.data).to.have.all.keys('email');
-          expect(body.name).to.equal('EmailNotFound');
+          expect(body.name).to.equal('InvalidCredentials');
 
           done(err);
         });
@@ -373,9 +373,9 @@ describe('Black Box Test: Auth', () => {
             const body = response.body;
 
             expect(body.status).to.equal('fail');
-            expect(body).to.have.all.keys('status', 'name', 'data');
+            expect(body).to.have.all.keys('status', 'name', 'data', 'message');
             expect(body.data).to.have.all.keys('email');
-            expect(body.name).to.equal('EmailNotConfirmed');
+            expect(body.name).to.equal('NotConfirmed');
 
             done(err);
           });
@@ -438,9 +438,9 @@ describe('Black Box Test: Auth', () => {
             const body = response.body;
 
             expect(body.status).to.equal('fail');
-            expect(body).to.have.all.keys('status', 'name', 'data');
+            expect(body).to.have.all.keys('status', 'name', 'data', 'message');
             expect(body.data).to.have.all.keys('user');
-            expect(body.name).to.equal('UserNotFound');
+            expect(body.name).to.equal('InvalidCredentials');
 
             done(err);
           });
@@ -483,7 +483,7 @@ describe('Black Box Test: Auth', () => {
                       const body = response.body;
 
                       expect(body.status).to.equal('fail');
-                      expect(body).to.have.all.keys('status', 'name', 'data');
+                      expect(body).to.have.all.keys('status', 'name', 'data', 'message');
                       expect(body.data).to.have.all.keys('user');
                       expect(body.name).to.equal('ExpiredToken');
 
