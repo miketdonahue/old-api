@@ -142,25 +142,27 @@ const login = (req, res) =>
     .then((obj) => {
       const user = obj;
 
-      return user.comparePassword(req.body.password)
-        .then(({ isMatch }) => {
-          if (!isMatch) {
-            const serviceError = {
-              name: 'InvalidCredentials',
-              message: 'The user has entered invalid credentials',
-              statusCode: 400,
-              data: { user: 'Credentials are invalid' },
-            };
+      return user.comparePassword(req.body.password);
+    })
+    .then(({ isMatch, user }) => {
+      const userObj = user;
 
-            throw (serviceError);
-          }
+      if (!isMatch) {
+        const serviceError = {
+          name: 'InvalidCredentials',
+          message: 'The user has entered invalid credentials',
+          statusCode: 400,
+          data: { user: 'Credentials are invalid' },
+        };
 
-          logger.info({ uid: user.uid }, 'AUTH-CTRL.LOGIN: Updating user attributes');
+        throw (serviceError);
+      }
 
-          user.last_visit = momentDate();
-          user.ip = req.ip;
-          return user.save(['last_visit', 'ip']);
-        });
+      logger.info({ uid: userObj.uid }, 'AUTH-CTRL.LOGIN: Updating user attributes');
+
+      userObj.last_visit = momentDate();
+      userObj.ip = req.ip;
+      return userObj.save(['last_visit', 'ip']);
     })
     .then((updatedUser) => {
       jwt.sign({
@@ -198,7 +200,7 @@ const forgotPassword = (req, res) =>
 
       if (!user || !user.confirmed) {
         const serviceError = {
-          name: (!user) ? 'InvalidCredentials' : 'EmailNotConfirmed',
+          name: (!user) ? 'InvalidCredentials' : 'NotConfirmed',
           message: 'Invalid credentials or user email is not confirmed',
           statusCode: 400,
           data: { email: (!user) ? 'Credentials are invalid' : 'The email is not confirmed' },

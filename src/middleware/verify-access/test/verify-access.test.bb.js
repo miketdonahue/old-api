@@ -99,7 +99,7 @@ describe('Black Box Test: Verify-Access', () => {
                   const resBody = res.body;
 
                   expect(resBody.status).to.equal('fail');
-                  expect(resBody).to.have.all.keys('status', 'name', 'data');
+                  expect(resBody).to.have.all.keys('status', 'name', 'data', 'message');
                   expect(resBody.data).to.have.all.keys('user');
                   expect(resBody.name).to.equal('Unauthorized');
 
