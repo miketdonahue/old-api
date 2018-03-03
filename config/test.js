@@ -5,7 +5,11 @@ module.exports = {
   server: {
     port: 9000,
   },
-  jwt: false,
-  verifyAccess: false,
-  sendEmails: false,
+  auth: {
+    jwt: false,
+    verifyAccess: false,
+  },
+  mailer: {
+    sendEmails: false,
+  },
 };

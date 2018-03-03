@@ -16,7 +16,8 @@
     "migrate:undo:all": "sequelize db:migrate:undo:all --config config/databases.js",
     "seed": "sequelize db:seed:all --config config/databases.js",
     "seed:undo": "sequelize db:seed:undo --config config/databases.js",
-    "seed:undo:all": "sequelize db:seed:undo:all --config config/databases.js"
+    "seed:undo:all": "sequelize db:seed:undo:all --config config/databases.js",
+    "mysql:restart": "mysql.server restart"
   },
   "nyc": {
     "check-coverage": true,
@@ -60,6 +61,7 @@
     "cors": "^2.8.3",
     "csurf": "^1.9.0",
     "express": "^4.15.3",
+    "express-healthcheck": "^0.1.0",
     "helmet": "^3.6.1",
     "jsonwebtoken": "^8.0.0",
     "lodash.difference": "^4.5.0",

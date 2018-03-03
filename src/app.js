@@ -7,13 +7,23 @@ const config = require('config');
 const formatError = require('local-error-formatter');
 const logger = require('local-logger');
 const requestLogger = require('middleware/request-logger');
+const healthCheck = require('express-healthcheck');
 
 const app = express();
 const baseUrl = '/api';
 
+// Security Headers
+app.use(helmet());
+app.use(helmet.referrerPolicy({ policy: 'same-origin' }));
+app.use(helmet.contentSecurityPolicy({
+  directives: {
+    defaultSrc: ["'self'"],
+  },
+}));
+
 // Global middleware
 app.use('/public', express.static('public'));
-app.use(helmet());
+app.use('/health-check', healthCheck());
 app.use(requestLogger());
 app.use(cookieParser());
 app.use(bodyParser.urlencoded({ extended: true }));

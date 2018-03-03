@@ -217,7 +217,7 @@ module.exports = (sequelize, DataTypes) => {
 
         user.password = hash;
         user.confirmed_token = md5(user.email + Math.random());
-        user.confirmed_expires = momentDate().add(config.tokens.confirmed.expireTime, 'h');
+        user.confirmed_expires = momentDate().add(config.auth.tokens.confirmed.expireTime, 'h');
 
         // All users should have role of 'user' by default
         return sequelize.models.role.findOne({ where: { name: 'user' }, attributes: ['id'] })

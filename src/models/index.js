@@ -7,7 +7,7 @@ const db = {};
 const basename = path.basename(module.filename);
 const dbUrl = `mysql://${config.database.username}:${config.database.password}@localhost:3306/${config.database.database}`;
 
-const sequelize = new Sequelize(dbUrl, { logging: config.sqlLogging });
+const sequelize = new Sequelize(dbUrl, { logging: config.database.sqlLogging });
 
 fs
   .readdirSync(__dirname)

@@ -22,8 +22,8 @@ describe('Black Box Test: Verify-Access', () => {
   });
 
   it('should returns users if the requester has the correct access to the resource', (done) => {
-    config.verifyAccess = true;
-    config.jwt = {
+    config.auth.verifyAccess = true;
+    config.auth.jwt = {
       secret: process.env.JWT_SECRET,
       expireTime: '1h',
     };
@@ -69,8 +69,8 @@ describe('Black Box Test: Verify-Access', () => {
   });
 
   it('should throw an error if the requester does not have access to the resource', (done) => {
-    config.verifyAccess = true;
-    config.jwt = {
+    config.auth.verifyAccess = true;
+    config.auth.jwt = {
       secret: process.env.JWT_SECRET,
       expireTime: '1h',
     };

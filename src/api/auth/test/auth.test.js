@@ -38,16 +38,18 @@ describe('Unit Test: Auth', () => {
         sign: sinon.stub(),
       },
       config: {
-        jwt: {
-          secret: 'secret',
-          expireTime: '1h',
-        },
-        tokens: {
-          confirmed: {
-            expireTime: 2,
+        auth: {
+          jwt: {
+            secret: 'secret',
+            expireTime: '1h',
           },
-          passwordReset: {
-            expireTime: 2,
+          tokens: {
+            confirmed: {
+              expireTime: 2,
+            },
+            passwordReset: {
+              expireTime: 2,
+            },
           },
         },
       },
