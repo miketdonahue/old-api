@@ -4,22 +4,24 @@ module.exports = {
   server: {
     port: process.env.PORT || 8080,
   },
-  jwt: {
-    secret: process.env.JWT_SECRET,
-    expireTime: '1h',
-  },
-  tokens: {
-    passwordReset: {
-      expireTime: 2, // time in hours
+  auth: {
+    jwt: {
+      secret: process.env.JWT_SECRET,
+      expireTime: '1h',
     },
-    confirmed: {
-      expireTime: 2, // time in hours
+    tokens: {
+      passwordReset: {
+        expireTime: 2, // time in hours
+      },
+      confirmed: {
+        expireTime: 2, // time in hours
+      },
     },
+    verifyAccess: false,
   },
-  sendEmails: true,
   mailer: {
+    sendEmails: true,
     domain: 'makeitcount.cc',
   },
   database: db.development,
-  sqlLogging: console.log, // eslint-disable-line no-console
 };

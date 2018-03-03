@@ -5,6 +5,7 @@ module.exports = {
     database: 'node_api_development',
     host: process.env.DB_HOST,
     dialect: 'mysql',
+    sqlLogging: console.log, // eslint-disable-line no-console
   },
   test: {
     username: process.env.DB_USERNAME,
@@ -19,5 +20,6 @@ module.exports = {
     database: 'node_api_production',
     host: process.env.DB_HOST,
     dialect: 'mysql',
+    sqlLogging: false,
   },
 };

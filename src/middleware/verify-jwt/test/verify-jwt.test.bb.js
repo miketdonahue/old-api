@@ -22,7 +22,7 @@ describe('Black Box Test: Verify-Jwt', () => {
   });
 
   it('should returns users if Authorization header with correct JWT given', (done) => {
-    config.jwt = {
+    config.auth.jwt = {
       secret: process.env.JWT_SECRET,
       expireTime: '1h',
     };
@@ -62,7 +62,7 @@ describe('Black Box Test: Verify-Jwt', () => {
   });
 
   it('should throw an error if Authorization header contains a malformed JWT', (done) => {
-    config.jwt = {
+    config.auth.jwt = {
       secret: process.env.JWT_SECRET,
       expireTime: '1h',
     };

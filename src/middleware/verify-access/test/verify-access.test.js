@@ -23,7 +23,9 @@ describe('Unit Test: Verify Access Middleware', () => {
       },
       getPermissions: sinon.stub(),
       config: {
-        verifyAccess: {},
+        auth: {
+          verifyAccess: {},
+        },
       },
       logger: {
         info: sinon.spy(),
@@ -95,8 +97,8 @@ describe('Unit Test: Verify Access Middleware', () => {
       })).to.be.true;
     });
 
-    it('should call next if config.jwt is set to false', () => {
-      mock.config.verifyAccess = false;
+    it('should call next if config.auth.jwt is set to false', () => {
+      mock.config.auth.verifyAccess = false;
 
       verifyAccessMiddleware(mock.req, mock.res, mock.nextSpy);
 

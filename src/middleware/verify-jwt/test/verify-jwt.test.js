@@ -21,8 +21,10 @@ describe('Unit Test: Verify JWT Middleware', () => {
         verify: sinon.stub(),
       },
       config: {
-        jwt: {
-          secret: 'secret',
+        auth: {
+          jwt: {
+            secret: 'secret',
+          },
         },
       },
       logger: {
@@ -117,8 +119,8 @@ describe('Unit Test: Verify JWT Middleware', () => {
       expect(mock.nextSpy.calledWith('no Bearer present')).to.be.true;
     });
 
-    it('should call next if config.jwt is set to false', () => {
-      mock.config.jwt = false;
+    it('should call next if config.auth.jwt is set to false', () => {
+      mock.config.auth.jwt = false;
 
       verifyJwtMiddleware(mock.req, mock.res, mock.nextSpy);
 

@@ -33,11 +33,11 @@ function getTokenFromHeader(headers) {
  */
 function verifyJwt() {
   return (req, res, next) => {
-    if (config.jwt === false) return next();
+    if (config.auth.jwt === false) return next();
 
     const token = getTokenFromHeader(req.headers);
 
-    return jwt.verify(token, config.jwt.secret, (err, decoded) => {
+    return jwt.verify(token, config.auth.jwt.secret, (err, decoded) => {
       if (err) {
         logger.warn(`VERIFY-JWT-MIDDLEWARE: ${err.message}`);
 

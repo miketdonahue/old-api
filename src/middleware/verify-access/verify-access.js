@@ -13,7 +13,7 @@ const getPermissions = require('./access');
  */
 function verifyAccess(action, resource) {
   return (req, res, next) => {
-    if (config.verifyAccess === false) return next();
+    if (config.auth.verifyAccess === false) return next();
 
     const user = objectPath.get(res.locals, 'user');
     const paramsUid = objectPath.get(req, 'params.uid');

@@ -21,7 +21,7 @@ describe('Black Box Test: Auth', () => {
 
   afterEach((done) => {
     exec('NODE_ENV=test yarn seed:undo:all', (error) => {
-      config.jwt = false;
+      config.auth.jwt = false;
 
       done(error);
     });
@@ -134,7 +134,7 @@ describe('Black Box Test: Auth', () => {
     });
 
     it('should throw an error if the user\'s token has expired', (done) => {
-      config.jwt = {
+      config.auth.jwt = {
         secret: process.env.JWT_SECRET,
         expireTime: '1h',
       };
@@ -165,7 +165,7 @@ describe('Black Box Test: Auth', () => {
 
   describe('POST /api/auth/login', () => {
     it('should login a user', (done) => {
-      config.jwt = {
+      config.auth.jwt = {
         secret: process.env.JWT_SECRET,
         expireTime: '1h',
       };
@@ -448,7 +448,7 @@ describe('Black Box Test: Auth', () => {
     });
 
     it('should throw an error if the user\'s token has expired', (done) => {
-      config.jwt = {
+      config.auth.jwt = {
         secret: process.env.JWT_SECRET,
         expireTime: '1h',
       };

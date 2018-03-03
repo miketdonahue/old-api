@@ -169,8 +169,8 @@ const login = (req, res) =>
         uid: updatedUser.uid,
         role: updatedUser.role.get('name'),
       },
-      config.jwt.secret,
-      { expiresIn: config.jwt.expireTime }, (e, token) => {
+      config.auth.jwt.secret,
+      { expiresIn: config.auth.jwt.expireTime }, (e, token) => {
         if (e) throw (e);
 
         logger.info({ uid: updatedUser.uid }, 'AUTH-CTRL.LOGIN: Logging in user');
@@ -218,7 +218,7 @@ const forgotPassword = (req, res) =>
       logger.info({ uid: user.uid }, 'AUTH-CTRL.FORGOT-PASSWORD: Updating user attributes');
 
       user.reset_password_token = md5(user.password + Math.random());
-      user.reset_password_expires = momentDate().add(config.tokens.passwordReset.expireTime, 'h');
+      user.reset_password_expires = momentDate().add(config.auth.tokens.passwordReset.expireTime, 'h');
       return user.save(['reset_password_token', 'reset_password_expires']);
     })
     .then(updatedUser => emailClient.sendResetPasswordMail(updatedUser))
@@ -334,7 +334,7 @@ const resendConfirmation = (req, res) =>
 
       logger.info({ uid: user.uid }, 'AUTH-CTRL.RECONFIRM: Resent email for confirmation');
 
-      userObj.confirmed_expires = momentDate().add(config.tokens.confirmed.expireTime, 'h');
+      userObj.confirmed_expires = momentDate().add(config.auth.tokens.confirmed.expireTime, 'h');
       return userObj.save(['confirmed_expires']);
     })
     .then(() => res.json({ status: 'success', data: null }))
