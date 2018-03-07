@@ -24,29 +24,29 @@ module.exports = {
         allowNull: false,
       },
       last_name: {
-        allowNull: false,
         type: Sequelize.STRING,
+        allowNull: false,
       },
       email: {
-        allowNull: false,
         type: Sequelize.STRING,
+        allowNull: false,
       },
       password: {
-        allowNull: false,
         type: Sequelize.STRING,
+        allowNull: false,
       },
       last_visit: {
-        allowNull: true,
         type: Sequelize.DATE,
+        allowNull: true,
       },
       ip: {
-        allowNull: true,
         type: Sequelize.STRING,
+        allowNull: true,
       },
       confirmed: {
-        allowNull: false,
-        defaultValue: false,
         type: Sequelize.BOOLEAN,
+        defaultValue: false,
+        allowNull: false,
       },
       confirmed_token: {
         type: Sequelize.STRING,
