@@ -112,7 +112,6 @@ module.exports = (sequelize, DataTypes) => {
     confirmed: {
       type: DataTypes.BOOLEAN,
       allowNull: false,
-      defaultValue: false,
       validate: {
         isIn: [[true, false]],
         required: (value) => {

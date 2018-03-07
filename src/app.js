@@ -40,11 +40,13 @@ const verifyJwt = require('middleware/verify-jwt');
 const authRoutes = require('./api/auth/auth-routes');
 const mailerRoutes = require('./api/mailer/mailer-routes');
 const userRoutes = require('./api/users/users-routes');
+const paymentRoutes = require('./api/payments/payments-routes');
 const swaggerRoutes = require('./api/swagger/swagger-routes');
 
 app.use(`${baseUrl}/auth`, authRoutes);
 app.use(`${baseUrl}/mailer`, mailerRoutes);
 app.use(`${baseUrl}/users`, verifyJwt(), userRoutes);
+app.use(`${baseUrl}/payments`, verifyJwt(), paymentRoutes);
 app.use(`${baseUrl}/swagger`, verifyJwt(), swaggerRoutes);
 
 // Handle unknown routes a.k.a. 404s
