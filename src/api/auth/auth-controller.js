@@ -1,12 +1,11 @@
 const jwt = require('jsonwebtoken');
 const logger = require('local-logger');
 const config = require('config');
-const momentDate = require('moment');
 const md5 = require('md5');
+const addHours = require('date-fns/add_hours');
 const formatError = require('local-error-formatter');
 const emailClient = require('./auth-emails');
-const User = require('../../models').user;
-const Role = require('../../models').role;
+const User = require('../../models/user');
 
 /**
  * User signup flow
@@ -18,7 +17,14 @@ const Role = require('../../models').role;
  * @returns {Object} - JSON response {status, data}
  */
 const signup = (req, res) =>
-  User.findOne({ where: { email: req.body.email } })
+  User.knex()
+    .where({ email: req.body.email })
+    .first()
+    .then((user) => {
+      if (!user) User.validate(req.body);
+
+      return user;
+    })
     .then((user) => {
       if (!user) {
         logger.info('AUTH-CTRL.SIGNUP: Creating new user');
@@ -28,10 +34,7 @@ const signup = (req, res) =>
           first_name: req.body.firstName,
           last_name: req.body.lastName,
           password: req.body.password,
-          last_visit: momentDate(),
           ip: req.ip,
-        }, {
-          fields: ['uid', 'role_id', 'first_name', 'last_name', 'email', 'password', 'last_visit', 'ip', 'confirmed_token', 'confirmed_expires'],
         });
       }
 
@@ -53,7 +56,9 @@ const signup = (req, res) =>
 
       throw (serviceError);
     })
-    .then(({ user }) => res.status(201).json({ status: 'success', data: { user: { uid: user.uid } } }))
+    .then(({ user }) => {
+      res.status(201).json({ status: 'success', data: { user: { uid: user.uid } } });
+    })
     .catch((error) => {
       const err = formatError(error);
 
@@ -73,17 +78,19 @@ const signup = (req, res) =>
 const confirmAccount = (req, res) => {
   const { confirmToken } = req.query;
 
-  return User.findOne({ where: { confirmed_token: confirmToken } })
+  return User.knex()
+    .where({ confirmed_token: confirmToken })
+    .first()
     .then((obj) => {
       const user = obj;
-      const tokenExpired = user && user.confirmed_expires < momentDate();
+      const tokenExpired = user && user.confirmed_expires < new Date();
 
       if (!user || tokenExpired) {
         const serviceError = {
-          name: (!user) ? 'UserNotFound' : 'ExpiredToken',
-          message: 'The user was not found or the token has expired',
+          name: (!user) ? 'TokenNotFound' : 'ExpiredToken',
+          message: 'The token was not found or the token has expired',
           statusCode: 403,
-          data: { user: (!user) ? 'The user was not found' : 'The token has expired' },
+          data: { token: (!user) ? 'The token was not found' : 'The token has expired' },
         };
 
         throw (serviceError);
@@ -91,10 +98,11 @@ const confirmAccount = (req, res) => {
 
       logger.info({ uid: user.uid }, 'AUTH-CTRL.CONFIRM-ACCOUNT: Confirming user\'s account');
 
-      user.confirmed = true;
-      user.confirmed_token = null;
-      user.confirmed_expires = null;
-      return user.save(['confirmed', 'confirmed_token', 'confirmed_expires']);
+      return User.update(user, {
+        confirmed: true,
+        confirmed_token: null,
+        confirmed_expires: null,
+      });
     })
     .then((updatedUser) => {
       logger.info({ uid: updatedUser.uid }, 'AUTH-CTRL.CONFIRM-ACCOUNT: Account was confirmed');
@@ -118,10 +126,10 @@ const confirmAccount = (req, res) => {
  * @returns {Object} - JSON response {status, data}
  */
 const login = (req, res) =>
-  User.findOne({
-    where: { email: req.body.email },
-    include: [{ model: Role }],
-  })
+  User.knex()
+    .innerJoin('roles', 'users.role_id', 'roles.id')
+    .where({ email: req.body.email })
+    .first()
     .then((obj) => {
       const user = obj;
 
@@ -137,12 +145,8 @@ const login = (req, res) =>
       }
 
       logger.info({ uid: user.uid }, 'AUTH-CTRL.LOGIN: Found user');
-      return user;
-    })
-    .then((obj) => {
-      const user = obj;
 
-      return user.comparePassword(req.body.password);
+      return User.comparePassword(user, req.body.password);
     })
     .then(({ isMatch, user }) => {
       const userObj = user;
@@ -160,14 +164,15 @@ const login = (req, res) =>
 
       logger.info({ uid: userObj.uid }, 'AUTH-CTRL.LOGIN: Updating user attributes');
 
-      userObj.last_visit = momentDate();
-      userObj.ip = req.ip;
-      return userObj.save(['last_visit', 'ip']);
+      return User.update(userObj, {
+        last_visit: new Date(),
+        ip: req.ip,
+      });
     })
     .then((updatedUser) => {
       jwt.sign({
         uid: updatedUser.uid,
-        role: updatedUser.role.get('name'),
+        role: updatedUser.role,
       },
       config.auth.jwt.secret,
       { expiresIn: config.auth.jwt.expireTime }, (e, token) => {
@@ -194,7 +199,9 @@ const login = (req, res) =>
  * @returns {Object} - JSON response {status, data}
  */
 const forgotPassword = (req, res) =>
-  User.findOne({ where: { email: req.body.email } })
+  User.knex()
+    .where({ email: req.body.email })
+    .first()
     .then((obj) => {
       const user = obj;
 
@@ -217,9 +224,10 @@ const forgotPassword = (req, res) =>
 
       logger.info({ uid: user.uid }, 'AUTH-CTRL.FORGOT-PASSWORD: Updating user attributes');
 
-      user.reset_password_token = md5(user.password + Math.random());
-      user.reset_password_expires = momentDate().add(config.auth.tokens.passwordReset.expireTime, 'h');
-      return user.save(['reset_password_token', 'reset_password_expires']);
+      return User.update(user, {
+        reset_password_token: md5(user.password + Math.random()),
+        reset_password_expires: addHours(new Date(), config.auth.tokens.passwordReset.expireTime),
+      });
     })
     .then(updatedUser => emailClient.sendResetPasswordMail(updatedUser))
     .then(({ user }) => res.json({ status: 'success', data: { user: { uid: user.uid } } }))
@@ -242,17 +250,24 @@ const forgotPassword = (req, res) =>
 const resetPassword = (req, res) => {
   const { resetPasswordToken } = req.query;
 
-  return User.findOne({ where: { reset_password_token: resetPasswordToken } })
+  return User.knex()
+    .where({ reset_password_token: resetPasswordToken })
+    .first()
+    .then((obj) => {
+      User.validate(req.body);
+
+      return obj;
+    })
     .then((obj) => {
       const user = obj;
-      const tokenExpired = user && user.reset_password_expires < momentDate();
+      const tokenExpired = user && user.reset_password_expires < new Date();
 
       if (!user || tokenExpired) {
         const serviceError = {
-          name: (!user) ? 'InvalidCredentials' : 'ExpiredToken',
-          message: 'Invalid credentials or token expired',
+          name: (!user) ? 'TokenNotFound' : 'ExpiredToken',
+          message: 'The token was not found or token expired',
           statusCode: 403,
-          data: { user: (!user) ? 'Credentials are invalid' : 'The token has expired' },
+          data: { token: (!user) ? 'The token was not found' : 'The token has expired' },
         };
 
         throw (serviceError);
@@ -265,29 +280,28 @@ const resetPassword = (req, res) => {
 
       logger.info({ uid: user.uid }, 'AUTH-CTRL.RESET-PASSWORD: Updating user attributes');
 
-      return user.comparePassword(req.body.password)
-        .then(({ isMatch }) => {
-          if (isMatch) return ({ user, isMatch });
-
-          return { user };
-        });
+      return User.comparePassword(user, req.body.password);
     })
-    .then((obj) => {
-      const user = obj.user;
-
-      if (!obj.isMatch) {
-        return user.hashPassword(req.body.password)
-          .then((hash) => {
-            user.password = hash;
-            user.reset_password_token = null;
-            user.reset_password_expires = null;
-            return user.save(['password', 'reset_password_token', 'reset_password_expires']);
-          });
+    .then(({ isMatch, user }) => {
+      if (!isMatch) {
+        return User.hashPassword(user, req.body.password);
       }
 
-      user.reset_password_token = null;
-      user.reset_password_expires = null;
-      return user.save(['reset_password_token', 'reset_password_expires']);
+      return { hashedPassword: null, user };
+    })
+    .then(({ hashedPassword, user }) => {
+      if (hashedPassword) {
+        return User.update(user, {
+          password: hashedPassword,
+          reset_password_token: null,
+          reset_password_expires: null,
+        });
+      }
+
+      return User.update(user, {
+        reset_password_token: null,
+        reset_password_expires: null,
+      });
     })
     .then((updatedUser) => {
       logger.info({
@@ -314,7 +328,9 @@ const resetPassword = (req, res) => {
  * @returns {Object} - JSON response {status, data}
  */
 const resendConfirmation = (req, res) =>
-  User.findOne({ where: { uid: req.body.uid } })
+  User.knex()
+    .where({ uid: req.body.uid })
+    .first()
     .then((user) => {
       if (!user || user.confirmed) {
         const serviceError = {
@@ -334,8 +350,9 @@ const resendConfirmation = (req, res) =>
 
       logger.info({ uid: user.uid }, 'AUTH-CTRL.RECONFIRM: Resent email for confirmation');
 
-      userObj.confirmed_expires = momentDate().add(config.auth.tokens.confirmed.expireTime, 'h');
-      return userObj.save(['confirmed_expires']);
+      return User.update(userObj, {
+        confirmed_expires: addHours(new Date(), config.auth.tokens.confirmed.expireTime),
+      });
     })
     .then(() => res.json({ status: 'success', data: null }))
     .catch((error) => {

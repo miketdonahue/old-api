@@ -1,238 +1,92 @@
-const bcrypt = require('bcrypt');
 const shortId = require('shortid');
-const config = require('config');
-const logger = require('local-logger');
+const bcrypt = require('bcrypt');
 const md5 = require('md5');
-const momentDate = require('moment');
-const xss = require('xss');
-const difference = require('lodash.difference');
-const v = require('local-validations');
+const validator = require('local-validator');
+const addHours = require('date-fns/add_hours');
+const config = require('config');
+const knex = require('knex')(config.database);
 
-module.exports = (sequelize, DataTypes) => {
-  const User = sequelize.define('user', {
-    uid: {
-      type: DataTypes.STRING,
-      allowNull: false,
-      unique: true,
-      required: (value) => {
-        v.required(value);
-      },
-      suspicious: (value) => {
-        v.suspicious(value);
-      },
-    },
-    role_id: {
-      type: DataTypes.INTEGER,
-      references: {
-        model: sequelize.models.role,
-        key: 'id',
-      },
-      validate: {
-        isInt: true,
-      },
-    },
+const User = {
+  validations: {
     first_name: {
-      type: DataTypes.STRING,
-      allowNull: false,
-      validate: {
-        isAlpha: true,
-        notEmpty: true,
-        required: (value) => {
-          v.required(value);
-        },
-        suspicious: (value) => {
-          v.suspicious(value);
-        },
+      format: {
+        pattern: /[A-Za-z]+/,
+        message: 'can contain only letters',
       },
     },
     last_name: {
-      type: DataTypes.STRING,
-      allowNull: false,
-      validate: {
-        isAlpha: true,
-        notEmpty: true,
-        required: (value) => {
-          v.required(value);
-        },
-        suspicious: (value) => {
-          v.suspicious(value);
-        },
+      format: {
+        pattern: /[A-Za-z]+/,
+        message: 'can contain only letters',
       },
     },
-    email: {
-      type: DataTypes.STRING,
-      allowNull: false,
-      unique: true,
-      validate: {
-        isEmail: true,
-        notEmpty: true,
-        required: (value) => {
-          v.required(value);
-        },
-        suspicious: (value) => {
-          v.suspicious(value);
-        },
-      },
-      set(val) {
-        this.setDataValue('email', val.toLowerCase());
-      },
-    },
+    email: { email: true },
     password: {
-      type: DataTypes.STRING,
-      allowNull: false,
-      validate: {
-        notEmpty: true,
-        required: (value) => {
-          v.required(value);
-        },
+      length: {
+        minimum: 6,
+        maximum: 40,
+        tooShort: 'must be greater than 6 characters',
+        tooLong: 'must be less than 40 characters',
       },
     },
-    last_visit: {
-      type: DataTypes.DATE,
-      allowNull: false,
-      validate: {
-        isDate: true,
-        suspicious: (value) => {
-          v.suspicious(value);
-        },
-      },
-    },
-    ip: {
-      type: DataTypes.STRING,
-      allowNull: true,
-      defaultValue: null,
-      validate: {
-        isIP: true,
-        notEmpty: true,
-        suspicious: (value) => {
-          v.suspicious(value);
-        },
-      },
-    },
-    confirmed: {
-      type: DataTypes.BOOLEAN,
-      allowNull: false,
-      validate: {
-        isIn: [[true, false]],
-        required: (value) => {
-          v.required(value);
-        },
-        suspicious: (value) => {
-          v.suspicious(value);
-        },
-      },
-    },
-    confirmed_token: {
-      type: DataTypes.STRING,
-      allowNull: true,
-      defaultValue: null,
-      validate: {
-        len: 32,
-        notEmpty: true,
-        suspicious: (value) => {
-          v.suspicious(value);
-        },
-      },
-    },
-    confirmed_expires: {
-      type: DataTypes.DATE,
-      allowNull: true,
-      defaultValue: null,
-      validate: {
-        isDate: true,
-        suspicious: (value) => {
-          v.suspicious(value);
-        },
-      },
-    },
-    reset_password_token: {
-      type: DataTypes.STRING,
-      allowNull: true,
-      validate: {
-        len: 32,
-        notEmpty: true,
-        suspicious: (value) => {
-          v.suspicious(value);
-        },
-      },
-    },
-    reset_password_expires: {
-      type: DataTypes.DATE,
-      allowNull: true,
-      defaultValue: null,
-      validate: {
-        isDate: true,
-        suspicious: (value) => {
-          v.suspicious(value);
-        },
-      },
-    },
-  }, {
-    underscored: true,
-    deletedAt: 'deleted_at',
-    paranoid: true,
-  });
+  },
 
-  // Methods
-  User.prototype.hashPassword = password => bcrypt.hash(password, 10).then(hash => hash);
+  knex() {
+    return knex('users');
+  },
 
-  User.prototype.comparePassword = function comparePassword(userPassword) {
-    return bcrypt.compare(userPassword, this.password).then(isMatch =>
-      ({ isMatch, user: this }));
-  };
+  async create(attributes) {
+    const uid = shortId.generate();
+    const role = await this._getRole('user');
+    const { hashedPassword } = await this.hashPassword(null, attributes.password);
 
-  // Hooks
-  User.beforeValidate((obj, options) => {
-    const user = obj;
-
-    if (user._options.isNewRecord) user.uid = shortId.generate();
-    return sequelize.Promise.resolve(options);
-  });
-
-  User.afterValidate('sanitize', (obj, options) => {
-    const user = obj;
-    const skipFields = ['id', 'created_at', 'updated_at', 'deleted_at'];
-    const fields = difference(options.fields, skipFields);
-
-    fields.forEach((field) => {
-      user[field] = xss(user[field]);
+    const payload = Object.assign({}, attributes, {
+      uid,
+      role_id: role.id,
+      password: hashedPassword,
+      confirmed: false,
+      confirmed_token: md5(attributes.email + Math.random()),
+      confirmed_expires: addHours(new Date(), config.auth.tokens.confirmed.expireTime),
     });
 
-    return sequelize.Promise.resolve(options);
-  });
+    return this
+      .knex()
+      .insert(payload)
+      .then(() =>
+        this.knex()
+          .where({ uid })
+          .first());
+  },
 
-  User.beforeCreate((obj, options) => {
-    const user = obj;
+  update(instance, attributes) {
+    return this
+      .knex()
+      .where({ uid: instance.uid })
+      .update(attributes)
+      .then(() =>
+        this.knex()
+          .where({ uid: instance.uid })
+          .first())
+      .then(updatedUser => Object.assign({}, instance, updatedUser));
+  },
 
-    return new Promise((resolve, reject) => {
-      bcrypt.hash(user.password, 10, (err, hash) => {
-        if (err) {
-          logger.error({
-            id: user.uid,
-          }, 'MODEL.beforeCreate: Password hash failure');
+  async comparePassword(instance, password) {
+    const user = await this.knex().where({ uid: instance.uid }).first().select('password');
 
-          return reject(err);
-        }
+    return bcrypt.compare(password, user.password).then(isMatch => ({ isMatch, user: instance }));
+  },
 
-        user.password = hash;
-        user.confirmed_token = md5(user.email + Math.random());
-        user.confirmed_expires = momentDate().add(config.auth.tokens.confirmed.expireTime, 'h');
+  hashPassword(instance, password) {
+    return bcrypt.hash(password, 10).then(hashedPassword => ({ hashedPassword, user: instance }));
+  },
 
-        // All users should have role of 'user' by default
-        return sequelize.models.role.findOne({ where: { name: 'user' }, attributes: ['id'] })
-          .then((role) => {
-            user.role_id = role.id;
+  validate(attributes) {
+    return validator(attributes, this.validations);
+  },
 
-            return resolve(options);
-          });
-      });
-    });
-  });
-
-  // Associations
-  User.associate = (models) => {
-    User.belongsTo(models.role, { foreignKey: 'role_id' });
-  };
-
-  return User;
+  _getRole(role) {
+    return knex('roles').where('role', role).first().select('id');
+  },
 };
+
+module.exports = User;
