@@ -5,9 +5,12 @@ module.exports = {
   ],
   "rules": {
     "import/no-extraneous-dependencies": ["error", {"packageDir": "./package.json"}],
-    "no-underscore-dangle": ["error", { "allow": ["_options", "_previousDataValues", "_headers"] }],
+    "no-underscore-dangle": ["error",
+      { "enforceInMethodNames": false, "allowAfterThis": true },
+    ],
     "no-confusing-arrow": ["error", {"allowParens": true}],
-    "no-plusplus": ["error", { "allowForLoopAfterthoughts": true }]
+    "no-plusplus": ["error", { "allowForLoopAfterthoughts": true }],
+    "no-param-reassign": ["error", { "props": false }]
   },
   "settings": {
     "import/resolver": {

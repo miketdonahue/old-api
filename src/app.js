@@ -1,3 +1,6 @@
+// For better local node_module paths (i.e. require('local-module'))
+require('app-module-path').addPath(__dirname);
+
 const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
