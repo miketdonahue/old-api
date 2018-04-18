@@ -1,7 +1,7 @@
 const logger = require('local-logger');
 const formatError = require('local-error-formatter');
-const modelUtils = require('../../utils/utils');
-const User = require('../../models').user;
+const utils = require('local-app-utils');
+const User = require('../../models/user');
 
 const attrWhitelist = [
   'uid',
@@ -23,7 +23,10 @@ const attrWhitelist = [
  * @returns {Object} - JSON response {status, data}
  */
 const list = (req, res) =>
-  User.findAll({ order: [['last_name', 'ASC']], attributes: attrWhitelist })
+  User.knex()
+    .whereNull('deleted_at')
+    .orderBy('last_name', 'asc')
+    .select(attrWhitelist)
     .then((users) => {
       if (!users.length) {
         const serviceError = {
@@ -37,6 +40,7 @@ const list = (req, res) =>
       }
 
       logger.info('USER-CTRL.LIST: Listing all users');
+
       return res.json({ status: 'success', data: { users } });
     })
     .catch((error) => {
@@ -55,7 +59,13 @@ const list = (req, res) =>
  * @returns {Object} - JSON response {status, data}
  */
 const show = (req, res) =>
-  User.findOne({ where: { uid: req.params.uid }, attributes: attrWhitelist })
+  User.knex()
+    .where({
+      uid: req.params.uid,
+      deleted_at: null,
+    })
+    .first()
+    .select(attrWhitelist)
     .then((user) => {
       if (!user) {
         const serviceError = {
@@ -69,6 +79,7 @@ const show = (req, res) =>
       }
 
       logger.info({ uid: user.uid }, 'USER-CTRL.SHOW: Retrieving user');
+
       return res.json({ status: 'success', data: { user } });
     })
     .catch((error) => {
@@ -87,7 +98,6 @@ const show = (req, res) =>
  * @returns {Object} - JSON response {status, data}
  */
 const update = (req, res) => {
-  const fieldsToUpdate = [];
   const body = {
     first_name: req.body.firstName,
     last_name: req.body.lastName,
@@ -95,7 +105,12 @@ const update = (req, res) => {
     password: req.body.password,
   };
 
-  return User.findOne({ where: { uid: req.params.uid } })
+  return User.knex()
+    .where({
+      uid: req.params.uid,
+      deleted_at: null,
+    })
+    .first()
     .then((user) => {
       if (!user) {
         const serviceError = {
@@ -111,40 +126,34 @@ const update = (req, res) => {
       logger.info({ uid: user.uid }, 'USER-CTRL.UPDATE: Updating user');
 
       if (!body.password) return { user };
-      return user.comparePassword(body.password);
+      return User.comparePassword(user, req.body.password);
     })
     .then(({ isMatch, user }) => {
-      if (isMatch) {
-        body.password = undefined;
-      }
-
-      return { isMatch, user };
-    })
-    .then(({ isMatch, user }) => {
-      logger.info({ uid: user.uid }, 'USER-CTRL.UPDATE: Preparing body');
-
-      // Add fields to be updated to array
-      Object.keys(body).forEach((key) => {
-        if (body[key] !== undefined) fieldsToUpdate.push(key);
-      });
-
       if (isMatch === false) {
-        return user.hashPassword(req.body.password)
-          .then((hash) => {
-            body.password = hash;
-            return user;
-          });
+        return User.hashPassword(user, req.body.password);
       }
 
-      return user;
+      return { hashedPassword: null, user };
     })
-    .then(user => user.update(body, { fields: fieldsToUpdate }))
+    .then(({ hashedPassword, user }) => {
+      const clonedBody = Object.assign({}, body);
+
+      logger.info({ uid: user.uid }, 'USER-CTRL.UPDATE: Determining values to update');
+
+      if (hashedPassword) {
+        clonedBody.password = hashedPassword;
+      } else {
+        clonedBody.password = undefined;
+      }
+
+      return User.update(user, clonedBody);
+    })
     .then((updatedUser) => {
       logger.info({ uid: updatedUser.uid }, 'USER-CTRL.UPDATE: Updated user');
 
       return res.json({
         status: 'success',
-        data: { user: modelUtils.responseData(attrWhitelist, updatedUser) },
+        data: { user: utils.models.responseData(attrWhitelist, updatedUser) },
       });
     })
     .catch((error) => {
@@ -164,7 +173,12 @@ const update = (req, res) => {
  * @returns {Object} - JSON response {status, data}
  */
 const destroy = (req, res) =>
-  User.findOne({ where: { uid: req.params.uid } })
+  User.knex()
+    .where({
+      uid: req.params.uid,
+      deleted_at: null,
+    })
+    .first()
     .then((user) => {
       if (!user) {
         const serviceError = {
@@ -178,7 +192,10 @@ const destroy = (req, res) =>
       }
 
       logger.info({ uid: user.uid }, 'USER-CTRL.DESTROY: Attempting to delete user');
-      return user.destroy();
+
+      return User.update(user, {
+        deleted_at: new Date(),
+      });
     })
     .then((deletedUser) => {
       logger.info({ uid: deletedUser.uid }, 'USER-CTRL.DESTROY: Deleted user');

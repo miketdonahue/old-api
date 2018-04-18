@@ -1,4 +1,4 @@
-const db = require('./databases');
+const db = require('../knexfile');
 
 module.exports = {
   server: {
@@ -17,7 +17,6 @@ module.exports = {
         expireTime: 2, // time in hours
       },
     },
-    verifyAccess: false,
   },
   mailer: {
     sendEmails: true,
