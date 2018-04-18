@@ -314,7 +314,9 @@ const resetPassword = (req, res) => {
  * @returns {Object} - JSON response {status, data}
  */
 const resendConfirmation = (req, res) =>
-  User.findOne({ where: { uid: req.body.uid } })
+  User.knex()
+    .where({ email: req.body.email })
+    .first()
     .then((user) => {
       if (!user || user.confirmed) {
         const serviceError = {
