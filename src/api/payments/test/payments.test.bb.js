@@ -56,10 +56,15 @@ describe('Black Box Test: Auth', () => {
         .end((err, response) => {
           const body = response.body;
 
-          expect(body.status).to.equal('fail');
-          expect(body).to.have.all.keys('status', 'name', 'data');
-          expect(body.data).to.have.all.keys('payment');
-          expect(body.name).to.equal('StripeInvalidRequestError');
+          expect(body).to.have.all.keys('errors');
+          expect(body.errors).to.be.an('array');
+          expect(body.errors[0]).to.have.all.keys('statusCode', 'message', 'code', 'meta');
+          expect(body.errors[0].statusCode).to.equal('400');
+          expect(body.errors[0].message).to.be.a('string');
+          expect(body.errors[0].code).to.equal('PARAMETER_MISSING');
+          expect(body.errors[0].meta).to.be.an('object');
+          expect(body.errors[0].meta).to.have.all.keys('param');
+          expect(body.errors[0].meta.param).to.equal('amount');
 
           done();
         });

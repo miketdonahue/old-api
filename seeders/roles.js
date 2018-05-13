@@ -1,3 +1,10 @@
+/**
+ * Seed "roles" database table
+ *
+ * @description Adds user, admin roles to database
+ * @function
+ * @param {Object} knex - knex connector
+ */
 exports.seed = knex =>
   knex('roles').del()
     .then(() =>

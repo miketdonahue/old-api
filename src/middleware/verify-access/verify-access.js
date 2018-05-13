@@ -19,13 +19,20 @@ function verifyAccess(action, resource) {
     const paramsUid = objectPath.get(req, 'params.uid');
 
     if (!user) {
-      const serviceError = {
-        name: 'UserNotFound',
+      const appError = {
+        name: 'AppError',
         message: 'No user was found on res.locals',
-        statusCode: 500,
+        statusCode: '500',
+        errors: [{
+          statusCode: '500',
+          message: 'No user was found on res.locals',
+          code: 'USER_NOT_FOUND',
+          source: { path: 'data/user' },
+        }],
       };
 
-      return next(serviceError);
+      logger.error({ response: appError }, `VERIFY-ACCESS-MIDDLEWARE: ${appError.message}`);
+      return next(appError);
     }
 
     const permissions = getPermissions(user, resource, action, paramsUid);
@@ -35,15 +42,20 @@ function verifyAccess(action, resource) {
       return next();
     }
 
-    const serviceError = {
-      name: 'Unauthorized',
+    const appError = {
+      name: 'AppError',
       message: 'The user is not authorized for this resource',
-      statusCode: 403,
-      data: { user: 'User does not have access to perform this action' },
+      statusCode: '403',
+      errors: [{
+        statusCode: '403',
+        message: 'The user is not authorized for this resource',
+        code: 'UNAUTHORIZED',
+        source: { path: 'data/user' },
+      }],
     };
 
-    logger.warn(`VERIFY-ACCESS-MIDDLEWARE: ${serviceError.message}`);
-    return next(serviceError);
+    logger.warn({ response: appError }, `VERIFY-ACCESS-MIDDLEWARE: ${appError.message}`);
+    return next(appError);
   };
 }
 

@@ -12,7 +12,7 @@ describe('Unit Test: Auth', () => {
   let sandbox;
 
   beforeEach(() => {
-    sandbox = sinon.sandbox.create();
+    sandbox = sinon.createSandbox();
 
     mock = {
       req: {},
@@ -135,11 +135,16 @@ describe('Unit Test: Auth', () => {
         expect(mock.mailer.sendConfirmMail.calledOnce).to.be.false;
         expect(userModel.create.calledOnce).to.be.false;
 
-        expect(status).to.equal(400);
-        expect(response.status).to.equal('fail');
-        expect(response).to.have.all.keys('status', 'name', 'data');
-        expect(response.data).to.have.all.keys('email');
-        expect(response.name).to.equal('UserExists');
+        expect(status).to.equal('400');
+        expect(response).to.have.all.keys('errors');
+        expect(response.errors).to.be.an('array');
+        expect(response.errors[0]).to.have.all.keys('statusCode', 'message', 'code', 'source');
+        expect(response.errors[0].statusCode).to.equal('400');
+        expect(response.errors[0].message).to.be.a('string');
+        expect(response.errors[0].code).to.equal('DUPLICATE_EMAIL');
+        expect(response.errors[0].source).to.be.an('object');
+        expect(response.errors[0].source).to.have.all.keys('path');
+        expect(response.errors[0].source.path).to.equal('data/user/email');
       });
     });
   });
@@ -195,11 +200,16 @@ describe('Unit Test: Auth', () => {
         expect(mock.res.status.calledOnce).to.be.true;
         expect(mock.res.json.calledOnce).to.be.true;
 
-        expect(status).to.equal(403);
-        expect(response.status).to.equal('fail');
-        expect(response).to.have.all.keys('status', 'name', 'data');
-        expect(response.data).to.have.all.keys('token');
-        expect(response.name).to.equal('TokenNotFound');
+        expect(status).to.equal('403');
+        expect(response).to.have.all.keys('errors');
+        expect(response.errors).to.be.an('array');
+        expect(response.errors[0]).to.have.all.keys('statusCode', 'message', 'code', 'source');
+        expect(response.errors[0].statusCode).to.equal('403');
+        expect(response.errors[0].message).to.be.a('string');
+        expect(response.errors[0].code).to.equal('TOKEN_NOT_FOUND');
+        expect(response.errors[0].source).to.be.an('object');
+        expect(response.errors[0].source).to.have.all.keys('path');
+        expect(response.errors[0].source.path).to.equal('data/user/token');
       });
     });
 
@@ -226,11 +236,16 @@ describe('Unit Test: Auth', () => {
         expect(mock.res.status.calledOnce).to.be.true;
         expect(mock.res.json.calledOnce).to.be.true;
 
-        expect(status).to.equal(403);
-        expect(response.status).to.equal('fail');
-        expect(response).to.have.all.keys('status', 'name', 'data');
-        expect(response.data).to.have.all.keys('token');
-        expect(response.name).to.equal('ExpiredToken');
+        expect(status).to.equal('403');
+        expect(response).to.have.all.keys('errors');
+        expect(response.errors).to.be.an('array');
+        expect(response.errors[0]).to.have.all.keys('statusCode', 'message', 'code', 'source');
+        expect(response.errors[0].statusCode).to.equal('403');
+        expect(response.errors[0].message).to.be.a('string');
+        expect(response.errors[0].code).to.equal('TOKEN_EXPIRED');
+        expect(response.errors[0].source).to.be.an('object');
+        expect(response.errors[0].source).to.have.all.keys('path');
+        expect(response.errors[0].source.path).to.equal('data/user/token');
       });
     });
   });
@@ -296,11 +311,16 @@ describe('Unit Test: Auth', () => {
         expect(userModel.update.calledOnce).to.be.false;
         expect(mock.jsonwebtoken.sign.calledOnce).to.be.false;
 
-        expect(status).to.equal(400);
-        expect(response.status).to.equal('fail');
-        expect(response).to.have.all.keys('status', 'name', 'data');
-        expect(response.data).to.have.all.keys('email');
-        expect(response.name).to.equal('InvalidCredentials');
+        expect(status).to.equal('401');
+        expect(response).to.have.all.keys('errors');
+        expect(response.errors).to.be.an('array');
+        expect(response.errors[0]).to.have.all.keys('statusCode', 'message', 'code', 'source');
+        expect(response.errors[0].statusCode).to.equal('401');
+        expect(response.errors[0].message).to.be.a('string');
+        expect(response.errors[0].code).to.equal('INVALID_CREDENTIALS');
+        expect(response.errors[0].source).to.be.an('object');
+        expect(response.errors[0].source).to.have.all.keys('path');
+        expect(response.errors[0].source.path).to.equal('data/user');
       });
     });
 
@@ -330,11 +350,16 @@ describe('Unit Test: Auth', () => {
         expect(userModel.update.calledOnce).to.be.false;
         expect(mock.jsonwebtoken.sign.calledOnce).to.be.false;
 
-        expect(status).to.equal(400);
-        expect(response.status).to.equal('fail');
-        expect(response).to.have.all.keys('status', 'name', 'data');
-        expect(response.data).to.have.all.keys('email');
-        expect(response.name).to.equal('NotConfirmed');
+        expect(status).to.equal('401');
+        expect(response).to.have.all.keys('errors');
+        expect(response.errors).to.be.an('array');
+        expect(response.errors[0]).to.have.all.keys('statusCode', 'message', 'code', 'source');
+        expect(response.errors[0].statusCode).to.equal('401');
+        expect(response.errors[0].message).to.be.a('string');
+        expect(response.errors[0].code).to.equal('USER_NOT_CONFIRMED');
+        expect(response.errors[0].source).to.be.an('object');
+        expect(response.errors[0].source).to.have.all.keys('path');
+        expect(response.errors[0].source.path).to.equal('data/user');
       });
     });
 
@@ -367,11 +392,16 @@ describe('Unit Test: Auth', () => {
         expect(userModel.update.calledOnce).to.be.false;
         expect(mock.jsonwebtoken.sign.calledOnce).to.be.false;
 
-        expect(status).to.equal(400);
-        expect(response.status).to.equal('fail');
-        expect(response).to.have.all.keys('status', 'name', 'data');
-        expect(response.data).to.have.all.keys('user');
-        expect(response.name).to.equal('InvalidCredentials');
+        expect(status).to.equal('401');
+        expect(response).to.have.all.keys('errors');
+        expect(response.errors).to.be.an('array');
+        expect(response.errors[0]).to.have.all.keys('statusCode', 'message', 'code', 'source');
+        expect(response.errors[0].statusCode).to.equal('401');
+        expect(response.errors[0].message).to.be.a('string');
+        expect(response.errors[0].code).to.equal('INVALID_CREDENTIALS');
+        expect(response.errors[0].source).to.be.an('object');
+        expect(response.errors[0].source).to.have.all.keys('path');
+        expect(response.errors[0].source.path).to.equal('data/user');
       });
     });
 
@@ -412,10 +442,13 @@ describe('Unit Test: Auth', () => {
         expect(userModel.update.calledOnce).to.be.true;
         expect(mock.jsonwebtoken.sign.calledOnce).to.be.true;
 
-        expect(status).to.equal(400);
-        expect(response.status).to.equal('fail');
-        expect(response).to.have.all.keys('status', 'name', 'data');
-        expect(response.name).to.equal('JsonWebTokenError');
+        expect(status).to.equal('500');
+        expect(response).to.have.all.keys('errors');
+        expect(response.errors).to.be.an('array');
+        expect(response.errors[0]).to.have.all.keys('statusCode', 'message', 'code', 'source', 'meta');
+        expect(response.errors[0].statusCode).to.equal('500');
+        expect(response.errors[0].message).to.be.a('string');
+        expect(response.errors[0].code).to.equal('SERVER_ERROR');
       });
     });
   });
@@ -475,11 +508,16 @@ describe('Unit Test: Auth', () => {
         expect(mock.res.json.calledOnce).to.be.true;
         expect(userModel.update.calledOnce).to.be.false;
 
-        expect(status).to.equal(400);
-        expect(response.status).to.equal('fail');
-        expect(response).to.have.all.keys('status', 'name', 'data');
-        expect(response.data).to.have.all.keys('email');
-        expect(response.name).to.equal('InvalidCredentials');
+        expect(status).to.equal('401');
+        expect(response).to.have.all.keys('errors');
+        expect(response.errors).to.be.an('array');
+        expect(response.errors[0]).to.have.all.keys('statusCode', 'message', 'code', 'source');
+        expect(response.errors[0].statusCode).to.equal('401');
+        expect(response.errors[0].message).to.be.a('string');
+        expect(response.errors[0].code).to.equal('INVALID_CREDENTIALS');
+        expect(response.errors[0].source).to.be.an('object');
+        expect(response.errors[0].source).to.have.all.keys('path');
+        expect(response.errors[0].source.path).to.equal('data/user');
       });
     });
 
@@ -506,11 +544,16 @@ describe('Unit Test: Auth', () => {
         expect(mock.res.json.calledOnce).to.be.true;
         expect(userModel.update.calledOnce).to.be.false;
 
-        expect(status).to.equal(400);
-        expect(response.status).to.equal('fail');
-        expect(response).to.have.all.keys('status', 'name', 'data');
-        expect(response.data).to.have.all.keys('email');
-        expect(response.name).to.equal('NotConfirmed');
+        expect(status).to.equal('401');
+        expect(response).to.have.all.keys('errors');
+        expect(response.errors).to.be.an('array');
+        expect(response.errors[0]).to.have.all.keys('statusCode', 'message', 'code', 'source');
+        expect(response.errors[0].statusCode).to.equal('401');
+        expect(response.errors[0].message).to.be.a('string');
+        expect(response.errors[0].code).to.equal('USER_NOT_CONFIRMED');
+        expect(response.errors[0].source).to.be.an('object');
+        expect(response.errors[0].source).to.have.all.keys('path');
+        expect(response.errors[0].source.path).to.equal('data/user');
       });
     });
   });
@@ -575,11 +618,16 @@ describe('Unit Test: Auth', () => {
         expect(mock.res.status.calledOnce).to.be.true;
         expect(mock.res.json.calledOnce).to.be.true;
 
-        expect(status).to.equal(403);
-        expect(response.status).to.equal('fail');
-        expect(response).to.have.all.keys('status', 'name', 'data');
-        expect(response.data).to.have.all.keys('token');
-        expect(response.name).to.equal('TokenNotFound');
+        expect(status).to.equal('403');
+        expect(response).to.have.all.keys('errors');
+        expect(response.errors).to.be.an('array');
+        expect(response.errors[0]).to.have.all.keys('statusCode', 'message', 'code', 'source');
+        expect(response.errors[0].statusCode).to.equal('403');
+        expect(response.errors[0].message).to.be.a('string');
+        expect(response.errors[0].code).to.equal('TOKEN_NOT_FOUND');
+        expect(response.errors[0].source).to.be.an('object');
+        expect(response.errors[0].source).to.have.all.keys('path');
+        expect(response.errors[0].source.path).to.equal('data/user/token');
       });
     });
 
@@ -608,11 +656,16 @@ describe('Unit Test: Auth', () => {
         expect(mock.res.status.calledOnce).to.be.true;
         expect(mock.res.json.calledOnce).to.be.true;
 
-        expect(status).to.equal(403);
-        expect(response.status).to.equal('fail');
-        expect(response).to.have.all.keys('status', 'name', 'data');
-        expect(response.data).to.have.all.keys('token');
-        expect(response.name).to.equal('ExpiredToken');
+        expect(status).to.equal('403');
+        expect(response).to.have.all.keys('errors');
+        expect(response.errors).to.be.an('array');
+        expect(response.errors[0]).to.have.all.keys('statusCode', 'message', 'code', 'source');
+        expect(response.errors[0].statusCode).to.equal('403');
+        expect(response.errors[0].message).to.be.a('string');
+        expect(response.errors[0].code).to.equal('TOKEN_EXPIRED');
+        expect(response.errors[0].source).to.be.an('object');
+        expect(response.errors[0].source).to.have.all.keys('path');
+        expect(response.errors[0].source.path).to.equal('data/user/token');
       });
     });
 
@@ -705,11 +758,16 @@ describe('Unit Test: Auth', () => {
         expect(mock.res.status.calledOnce).to.be.true;
         expect(mock.res.json.calledOnce).to.be.true;
 
-        expect(status).to.equal(400);
-        expect(response.status).to.equal('fail');
-        expect(response).to.have.all.keys('status', 'name', 'data');
-        expect(response.data).to.have.all.keys('email');
-        expect(response.name).to.equal('InvalidCredentials');
+        expect(status).to.equal('401');
+        expect(response).to.have.all.keys('errors');
+        expect(response.errors).to.be.an('array');
+        expect(response.errors[0]).to.have.all.keys('statusCode', 'message', 'code', 'source');
+        expect(response.errors[0].statusCode).to.equal('401');
+        expect(response.errors[0].message).to.be.a('string');
+        expect(response.errors[0].code).to.equal('INVALID_CREDENTIALS');
+        expect(response.errors[0].source).to.be.an('object');
+        expect(response.errors[0].source).to.have.all.keys('path');
+        expect(response.errors[0].source.path).to.equal('data/user');
       });
     });
 
@@ -717,7 +775,7 @@ describe('Unit Test: Auth', () => {
       const userModel = mock.userModel;
       const error = {
         name: 'SparkPostError',
-        statusCode: 500,
+        statusCode: '500',
         errors: [{}],
       };
       const req = {
@@ -743,10 +801,12 @@ describe('Unit Test: Auth', () => {
         expect(mock.res.status.calledOnce).to.be.true;
         expect(mock.res.json.calledOnce).to.be.true;
 
-        expect(status).to.equal(500);
-        expect(response.status).to.equal('error');
-        expect(response).to.have.all.keys('status', 'name', 'message', 'data');
-        expect(response.name).to.equal('SparkPostError');
+        expect(status).to.equal('500');
+        expect(response).to.have.all.keys('errors');
+        expect(response.errors).to.be.an('array');
+        expect(response.errors[0]).to.have.all.keys('statusCode', 'message', 'code');
+        expect(response.errors[0].statusCode).to.equal('500');
+        expect(response.errors[0].code).to.equal('SPARKPOST_ERROR');
       });
     });
   });

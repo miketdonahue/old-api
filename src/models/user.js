@@ -7,14 +7,15 @@ const config = require('config');
 const knex = require('knex')(config.database);
 
 const User = {
+  name: 'user',
   validations: {
-    first_name: {
+    firstName: {
       format: {
         pattern: /[A-Za-z]+/,
         message: 'can contain only letters',
       },
     },
-    last_name: {
+    lastName: {
       format: {
         pattern: /[A-Za-z]+/,
         message: 'can contain only letters',
@@ -31,10 +32,22 @@ const User = {
     },
   },
 
+  /**
+   * Create ORM query connection to a given database model
+   *
+   * @param {String} model - Database table model to query; Default: 'users'
+   * @return {Object} Query instance
+   */
   knex() {
     return knex('users');
   },
 
+  /**
+   * Create a new user
+   *
+   * @param {Object} attributes - A set of user attributes to create the user with
+   * @return {Object} The newly created user object
+   */
   async create(attributes) {
     const uid = shortId.generate();
     const role = await this._getRole('user');
@@ -58,6 +71,13 @@ const User = {
           .first());
   },
 
+  /**
+   * Hash the password
+   *
+   * @param {Object} instance - A user model instance
+   * @param {Object} attributes - A set of user attributes to be updated
+   * @return {Object} A user instance with the updated values
+   */
   update(instance, attributes) {
     return this
       .knex()
@@ -70,20 +90,46 @@ const User = {
       .then(updatedUser => Object.assign({}, instance, updatedUser));
   },
 
+  /**
+   * Compare passwords
+   *
+   * @param {Object} instance - A user model instance
+   * @param {String} password - The user's password
+   * @return {Object} A boolean for if there is a match and the original user instance
+   */
   async comparePassword(instance, password) {
     const user = await this.knex().where({ uid: instance.uid }).first().select('password');
 
     return bcrypt.compare(password, user.password).then(isMatch => ({ isMatch, user: instance }));
   },
 
+  /**
+   * Hash a password
+   *
+   * @param {Object} instance - A user model instance
+   * @param {String} password - The user's password
+   * @return {Object} The hashed password and the original user instance
+   */
   hashPassword(instance, password) {
     return bcrypt.hash(password, 10).then(hashedPassword => ({ hashedPassword, user: instance }));
   },
 
+  /**
+   * Validate user input
+   *
+   * @param {Object} attributes - User input from req.body
+   * @return {Object} Failed validations
+   */
   validate(attributes) {
-    return validator(attributes, this.validations);
+    return validator(this.name, attributes, this.validations);
   },
 
+  /**
+   * Gets the Role ID for the given role
+   *
+   * @param {String} role - The name of a role
+   * @return {String} A role ID.
+   */
   _getRole(role) {
     return knex('roles').where('role', role).first().select('id');
   },

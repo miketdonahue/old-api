@@ -6,7 +6,6 @@ Built with Express.js, MySql, and Knex.js.
 
 - Security (CORS, CSRF, CSP)
 - Health Check
-- Swagger
 - Auth'z & Auth'n (JWT)
 - Thorough Error Handling
 - Response Consistency (JSend)

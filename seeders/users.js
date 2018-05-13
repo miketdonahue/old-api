@@ -4,6 +4,14 @@ const addHours = require('date-fns/add_hours');
 const bcrypt = require('bcrypt');
 const Chance = require('chance');
 
+/**
+ * Seed "users" database table
+ *
+ * @description Adds user, admin roles to database
+ * @function
+ * @param {Object} knex - knex connector
+ * @param {Promise} Promise - ES6 native Promise
+ */
 exports.seed = (knex, Promise) => {
   const numberOfUsers = 5;
 

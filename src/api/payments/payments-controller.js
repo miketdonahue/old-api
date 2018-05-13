@@ -1,5 +1,5 @@
 const logger = require('local-logger');
-const formatError = require('local-error-formatter');
+const formatError = require('local-error-handler');
 const stripe = require('stripe')(process.env.STRIPE_SECRET_TEST);
 
 /**
@@ -23,8 +23,8 @@ const charge = (req, res) =>
     .catch((error) => {
       const err = formatError(error);
 
-      logger[err.level]({ err: error, info: err.info }, `PAYMENTS-CTRL.CHARGE: ${err.message}`);
-      return res.status(err.statusCode).json(err.jsonResponse);
+      logger[err.level]({ err: error, response: err }, `PAYMENTS-CTRL.CHARGE: ${err.message}`);
+      return res.status(err.statusCode).json({ errors: err.jsonResponse });
     });
 
 module.exports = {

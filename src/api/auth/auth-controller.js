@@ -3,12 +3,14 @@ const logger = require('local-logger');
 const config = require('config');
 const md5 = require('md5');
 const addHours = require('date-fns/add_hours');
-const formatError = require('local-error-formatter');
+const ApiError = require('local-errors');
+const formatError = require('local-error-handler');
+const authErrors = require('./auth-errors');
 const emailClient = require('./auth-emails');
 const User = require('../../models/user');
 
 /**
- * User signup flow
+ * User sign up flow
  *
  * @description Creates a new user; Sends confirmation email
  * @function
@@ -47,14 +49,19 @@ const signup = (req, res) =>
         return emailClient.sendConfirmMail(user);
       }
 
-      const serviceError = {
-        name: 'UserExists',
-        message: 'Duplicate email',
-        statusCode: 400,
-        data: { email: 'A user with this email has already been created' },
+      const appError = {
+        name: 'AppError',
+        message: 'Duplicate email address',
+        statusCode: '400',
+        errors: [{
+          statusCode: '400',
+          message: 'The email address already exists',
+          code: 'DUPLICATE_EMAIL',
+          source: { path: 'data/user/email' },
+        }],
       };
 
-      throw (serviceError);
+      throw new ApiError(appError);
     })
     .then(({ user }) => {
       res.status(201).json({ status: 'success', data: { user: { uid: user.uid } } });
@@ -62,8 +69,8 @@ const signup = (req, res) =>
     .catch((error) => {
       const err = formatError(error);
 
-      logger[err.level]({ err: error, info: err.info }, `AUTH-CTRL.SIGNUP: ${err.message}`);
-      return res.status(err.statusCode).json(err.jsonResponse);
+      logger[err.level]({ err: error, response: err }, `AUTH-CTRL.SIGNUP: ${err.message}`);
+      return res.status(err.statusCode).json({ errors: err.jsonResponse });
     });
 
 /**
@@ -86,14 +93,7 @@ const confirmAccount = (req, res) => {
       const tokenExpired = user && user.confirmed_expires < new Date();
 
       if (!user || tokenExpired) {
-        const serviceError = {
-          name: (!user) ? 'TokenNotFound' : 'ExpiredToken',
-          message: 'The token was not found or the token has expired',
-          statusCode: 403,
-          data: { token: (!user) ? 'The token was not found' : 'The token has expired' },
-        };
-
-        throw (serviceError);
+        throw new ApiError(authErrors.INVALID_TOKEN(user));
       }
 
       logger.info({ uid: user.uid }, 'AUTH-CTRL.CONFIRM-ACCOUNT: Confirming user\'s account');
@@ -111,8 +111,8 @@ const confirmAccount = (req, res) => {
     .catch((error) => {
       const err = formatError(error);
 
-      logger[err.level]({ err: error, info: err.info }, `AUTH-CTRL.CONFIRM-ACCOUNT: ${err.message}`);
-      return res.status(err.statusCode).json(err.jsonResponse);
+      logger[err.level]({ err: error, response: err }, `AUTH-CTRL.CONFIRM-ACCOUNT: ${err.message}`);
+      return res.status(err.statusCode).json({ errors: err.jsonResponse });
     });
 };
 
@@ -134,14 +134,7 @@ const login = (req, res) =>
       const user = obj;
 
       if (!user || !user.confirmed) {
-        const serviceError = {
-          name: (!user) ? 'InvalidCredentials' : 'NotConfirmed',
-          message: 'Invalid credentials or user email is not confirmed',
-          statusCode: 400,
-          data: { email: (!user) ? 'Credentials are invalid' : 'The email is not confirmed' },
-        };
-
-        throw (serviceError);
+        throw new ApiError(authErrors.INVALID_USER(user));
       }
 
       logger.info({ uid: user.uid }, 'AUTH-CTRL.LOGIN: Found user');
@@ -152,14 +145,19 @@ const login = (req, res) =>
       const userObj = user;
 
       if (!isMatch) {
-        const serviceError = {
-          name: 'InvalidCredentials',
-          message: 'The user has entered invalid credentials',
-          statusCode: 400,
-          data: { user: 'Credentials are invalid' },
+        const appError = {
+          name: 'AppError',
+          message: 'Invalid credentials',
+          statusCode: '401',
+          errors: [{
+            statusCode: '401',
+            message: 'The user credentials are invalid',
+            code: 'INVALID_CREDENTIALS',
+            source: { path: 'data/user' },
+          }],
         };
 
-        throw (serviceError);
+        throw new ApiError(appError);
       }
 
       logger.info({ uid: userObj.uid }, 'AUTH-CTRL.LOGIN: Updating user attributes');
@@ -185,8 +183,8 @@ const login = (req, res) =>
     .catch((error) => {
       const err = formatError(error);
 
-      logger[err.level]({ err: error, info: err.info }, `AUTH-CTRL.LOGIN: ${err.message}`);
-      return res.status(err.statusCode).json(err.jsonResponse);
+      logger[err.level]({ err: error, response: err }, `AUTH-CTRL.LOGIN: ${err.message}`);
+      return res.status(err.statusCode).json({ errors: err.jsonResponse });
     });
 
 /**
@@ -206,14 +204,7 @@ const forgotPassword = (req, res) =>
       const user = obj;
 
       if (!user || !user.confirmed) {
-        const serviceError = {
-          name: (!user) ? 'InvalidCredentials' : 'NotConfirmed',
-          message: 'Invalid credentials or user email is not confirmed',
-          statusCode: 400,
-          data: { email: (!user) ? 'Credentials are invalid' : 'The email is not confirmed' },
-        };
-
-        throw (serviceError);
+        throw new ApiError(authErrors.INVALID_USER(user));
       }
 
       logger.info({ uid: user.uid }, 'AUTH-CTRL.FORGOT-PASSWORD: Found user');
@@ -234,8 +225,8 @@ const forgotPassword = (req, res) =>
     .catch((error) => {
       const err = formatError(error);
 
-      logger[err.level]({ err: error, info: err.info }, `AUTH-CTRL.FORGOT-PASSWORD: ${err.message}`);
-      return res.status(err.statusCode).json(err.jsonResponse);
+      logger[err.level]({ err: error, response: err }, `AUTH-CTRL.FORGOT-PASSWORD: ${err.message}`);
+      return res.status(err.statusCode).json({ errors: err.jsonResponse });
     });
 
 /**
@@ -263,14 +254,7 @@ const resetPassword = (req, res) => {
       const tokenExpired = user && user.reset_password_expires < new Date();
 
       if (!user || tokenExpired) {
-        const serviceError = {
-          name: (!user) ? 'TokenNotFound' : 'ExpiredToken',
-          message: 'The token was not found or token expired',
-          statusCode: 403,
-          data: { token: (!user) ? 'The token was not found' : 'The token has expired' },
-        };
-
-        throw (serviceError);
+        throw new ApiError(authErrors.INVALID_TOKEN(user));
       }
 
       return user;
@@ -313,8 +297,8 @@ const resetPassword = (req, res) => {
     .catch((error) => {
       const err = formatError(error);
 
-      logger[err.level]({ err: error, info: err.info }, `AUTH-CTRL.RESET-PASSWORD: ${err.message}`);
-      return res.status(err.statusCode).json(err.jsonResponse);
+      logger[err.level]({ err: error, response: err }, `AUTH-CTRL.RESET-PASSWORD: ${err.message}`);
+      return res.status(err.statusCode).json({ errors: err.jsonResponse });
     });
 };
 
@@ -333,14 +317,19 @@ const resendConfirmation = (req, res) =>
     .first()
     .then((user) => {
       if (!user || user.confirmed) {
-        const serviceError = {
-          name: (!user) ? 'InvalidCredentials' : 'UserConfirmed',
-          message: 'Invalid credentials or user is already confirmed',
-          statusCode: 400,
-          data: { email: (!user) ? 'Credentials are invalid' : 'The user is already confirmed' },
+        const appError = {
+          name: 'AppError',
+          message: 'Invalid user credentials or user already confirmed',
+          statusCode: '401',
+          errors: [{
+            statusCode: '401',
+            message: `The user ${!user ? 'credentials are invalid' : 'is already confirmed'}`,
+            code: (!user) ? 'INVALID_CREDENTIALS' : 'USER_ALREADY_CONFIRMED',
+            source: { path: 'data/user' },
+          }],
         };
 
-        throw (serviceError);
+        throw new ApiError(appError);
       }
 
       return emailClient.sendConfirmMail(user);
@@ -358,8 +347,8 @@ const resendConfirmation = (req, res) =>
     .catch((error) => {
       const err = formatError(error);
 
-      logger[err.level]({ err: error, info: err.info }, `AUTH-CTRL.RECONFIRM: ${err.message}`);
-      return res.status(err.statusCode).json(err.jsonResponse);
+      logger[err.level]({ err: error, response: err }, `AUTH-CTRL.RECONFIRM: ${err.message}`);
+      return res.status(err.statusCode).json({ errors: err.jsonResponse });
     });
 
 module.exports = {

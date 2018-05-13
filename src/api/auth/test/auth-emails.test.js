@@ -10,7 +10,7 @@ describe('Unit Test: Auth Emails', () => {
   let sandbox;
 
   beforeEach(() => {
-    sandbox = sinon.sandbox.create();
+    sandbox = sinon.createSandbox();
 
     mock = {
       mailer: {

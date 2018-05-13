@@ -7,7 +7,7 @@ const request = require('supertest')(app);
 
 const User = require('../../../models/user');
 
-describe('Black Box Test: Users', () => {
+describe.skip('Black Box Test: Users', () => {
   beforeEach((done) => {
     exec('NODE_ENV=test yarn migrate && yarn seed', (error) => {
       done(error);

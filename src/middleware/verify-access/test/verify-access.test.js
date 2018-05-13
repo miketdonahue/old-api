@@ -10,7 +10,7 @@ describe('Unit Test: Verify Access Middleware', () => {
   let sandbox;
 
   beforeEach(() => {
-    sandbox = sinon.sandbox.create();
+    sandbox = sinon.createSandbox();
 
     mock = {
       req: {},
@@ -30,6 +30,7 @@ describe('Unit Test: Verify Access Middleware', () => {
       logger: {
         info: sinon.spy(),
         warn: sinon.spy(),
+        error: sinon.spy(),
       },
       nextSpy: sinon.spy(),
     };
@@ -72,9 +73,15 @@ describe('Unit Test: Verify Access Middleware', () => {
 
       expect(mock.nextSpy.calledOnce).to.be.true;
       expect(mock.nextSpy.calledWith({
-        name: 'UserNotFound',
+        name: 'AppError',
         message: 'No user was found on res.locals',
-        statusCode: 500,
+        statusCode: '500',
+        errors: [{
+          statusCode: '500',
+          message: 'No user was found on res.locals',
+          code: 'USER_NOT_FOUND',
+          source: { path: 'data/user' },
+        }],
       })).to.be.true;
     });
 
@@ -90,10 +97,15 @@ describe('Unit Test: Verify Access Middleware', () => {
 
       expect(mock.nextSpy.calledOnce).to.be.true;
       expect(mock.nextSpy.calledWith({
-        name: 'Unauthorized',
+        name: 'AppError',
         message: 'The user is not authorized for this resource',
-        statusCode: 403,
-        data: { user: 'User does not have access to perform this action' },
+        statusCode: '403',
+        errors: [{
+          statusCode: '403',
+          message: 'The user is not authorized for this resource',
+          code: 'UNAUTHORIZED',
+          source: { path: 'data/user' },
+        }],
       })).to.be.true;
     });
 

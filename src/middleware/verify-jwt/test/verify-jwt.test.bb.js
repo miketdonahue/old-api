@@ -89,13 +89,16 @@ describe('Black Box Test: Verify-Jwt', () => {
               .end(() => {
                 request
                   .get(`/api/users/${user.uid}`)
-                  .expect(400)
+                  .expect(500)
                   .end((err, response) => {
                     const body = response.body;
 
-                    expect(body.status).to.equal('fail');
-                    expect(body).to.have.all.keys('status', 'name', 'data');
-                    expect(body.name).to.equal('JsonWebTokenError');
+                    expect(body).to.have.all.keys('errors');
+                    expect(body.errors).to.be.an('array');
+                    expect(body.errors[0]).to.have.all.keys('statusCode', 'message', 'code', 'meta');
+                    expect(body.errors[0].statusCode).to.equal('500');
+                    expect(body.errors[0].message).to.be.a('string');
+                    expect(body.errors[0].code).to.equal('SERVER_ERROR');
 
                     done(err);
                   });

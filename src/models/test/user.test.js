@@ -8,8 +8,8 @@ describe('Unit Test: User Model', () => {
     it('should return undefined for a user passing validations', () => {
       try {
         User.validate({
-          first_name: 'Michael',
-          last_name: 'Jones',
+          firstName: 'Michael',
+          lastName: 'Jones',
           email: 'mike@mail.com',
           password: 'password',
         });
@@ -23,24 +23,40 @@ describe('Unit Test: User Model', () => {
     it('should only allow letters in the first name', () => {
       try {
         User.validate({
-          first_name: 'Mike123',
+          firstName: 'Mike123',
         });
       } catch (validationErr) {
-        expect(validationErr.data).to.have.all.keys('first_name');
-        expect(validationErr.data.first_name).to.be.an('array');
-        expect(validationErr.data.first_name).to.have.lengthOf(1);
+        expect(validationErr.name).to.equal('ValidationError');
+        expect(validationErr.message).to.equal('User input has failed validations');
+        expect(validationErr.statusCode).to.equal('400');
+        expect(validationErr.errors).to.be.an('array');
+        expect(validationErr.errors[0]).to.have.all.keys('statusCode', 'message', 'code', 'source');
+        expect(validationErr.errors[0].statusCode).to.equal('400');
+        expect(validationErr.errors[0].message).to.be.a('string');
+        expect(validationErr.errors[0].code).to.equal('VALIDATION_FAILED');
+        expect(validationErr.errors[0].source).to.be.an('object');
+        expect(validationErr.errors[0].source).to.have.all.keys('path');
+        expect(validationErr.errors[0].source.path).to.equal('data/user/firstName');
       }
     });
 
     it('should only allow letters in the last name', () => {
       try {
         User.validate({
-          last_name: 'Jones&^*',
+          lastName: 'Jones&^*',
         });
       } catch (validationErr) {
-        expect(validationErr.data).to.have.all.keys('last_name');
-        expect(validationErr.data.last_name).to.be.an('array');
-        expect(validationErr.data.last_name).to.have.lengthOf(1);
+        expect(validationErr.name).to.equal('ValidationError');
+        expect(validationErr.message).to.equal('User input has failed validations');
+        expect(validationErr.statusCode).to.equal('400');
+        expect(validationErr.errors).to.be.an('array');
+        expect(validationErr.errors[0]).to.have.all.keys('statusCode', 'message', 'code', 'source');
+        expect(validationErr.errors[0].statusCode).to.equal('400');
+        expect(validationErr.errors[0].message).to.be.a('string');
+        expect(validationErr.errors[0].code).to.equal('VALIDATION_FAILED');
+        expect(validationErr.errors[0].source).to.be.an('object');
+        expect(validationErr.errors[0].source).to.have.all.keys('path');
+        expect(validationErr.errors[0].source.path).to.equal('data/user/lastName');
       }
     });
 
@@ -50,9 +66,17 @@ describe('Unit Test: User Model', () => {
           email: 'mikeatmail.com',
         });
       } catch (validationErr) {
-        expect(validationErr.data).to.have.all.keys('email');
-        expect(validationErr.data.email).to.be.an('array');
-        expect(validationErr.data.email).to.have.lengthOf(1);
+        expect(validationErr.name).to.equal('ValidationError');
+        expect(validationErr.message).to.equal('User input has failed validations');
+        expect(validationErr.statusCode).to.equal('400');
+        expect(validationErr.errors).to.be.an('array');
+        expect(validationErr.errors[0]).to.have.all.keys('statusCode', 'message', 'code', 'source');
+        expect(validationErr.errors[0].statusCode).to.equal('400');
+        expect(validationErr.errors[0].message).to.be.a('string');
+        expect(validationErr.errors[0].code).to.equal('VALIDATION_FAILED');
+        expect(validationErr.errors[0].source).to.be.an('object');
+        expect(validationErr.errors[0].source).to.have.all.keys('path');
+        expect(validationErr.errors[0].source.path).to.equal('data/user/email');
       }
     });
 
@@ -62,21 +86,37 @@ describe('Unit Test: User Model', () => {
           password: 'pass',
         });
       } catch (validationErr) {
-        expect(validationErr.data).to.have.all.keys('password');
-        expect(validationErr.data.password).to.be.an('array');
-        expect(validationErr.data.password).to.have.lengthOf(1);
+        expect(validationErr.name).to.equal('ValidationError');
+        expect(validationErr.message).to.equal('User input has failed validations');
+        expect(validationErr.statusCode).to.equal('400');
+        expect(validationErr.errors).to.be.an('array');
+        expect(validationErr.errors[0]).to.have.all.keys('statusCode', 'message', 'code', 'source');
+        expect(validationErr.errors[0].statusCode).to.equal('400');
+        expect(validationErr.errors[0].message).to.be.a('string');
+        expect(validationErr.errors[0].code).to.equal('VALIDATION_FAILED');
+        expect(validationErr.errors[0].source).to.be.an('object');
+        expect(validationErr.errors[0].source).to.have.all.keys('path');
+        expect(validationErr.errors[0].source.path).to.equal('data/user/password');
       }
     });
 
     it('should only allow password to be less than 40 characters', () => {
       try {
         User.validate({
-          password: 'reallyreallyreallyreallylongpassowrd',
+          password: 'reallyreallyreallyreallyreallyreallylongpassowrd',
         });
       } catch (validationErr) {
-        expect(validationErr.data).to.have.all.keys('password');
-        expect(validationErr.data.password).to.be.an('array');
-        expect(validationErr.data.password).to.have.lengthOf(1);
+        expect(validationErr.name).to.equal('ValidationError');
+        expect(validationErr.message).to.equal('User input has failed validations');
+        expect(validationErr.statusCode).to.equal('400');
+        expect(validationErr.errors).to.be.an('array');
+        expect(validationErr.errors[0]).to.have.all.keys('statusCode', 'message', 'code', 'source');
+        expect(validationErr.errors[0].statusCode).to.equal('400');
+        expect(validationErr.errors[0].message).to.be.a('string');
+        expect(validationErr.errors[0].code).to.equal('VALIDATION_FAILED');
+        expect(validationErr.errors[0].source).to.be.an('object');
+        expect(validationErr.errors[0].source).to.have.all.keys('path');
+        expect(validationErr.errors[0].source.path).to.equal('data/user/password');
       }
     });
   });

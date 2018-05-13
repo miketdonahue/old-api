@@ -1,5 +1,5 @@
 const logger = require('local-logger');
-const formatError = require('local-error-formatter');
+const formatError = require('local-error-handler');
 const utils = require('local-app-utils');
 const User = require('../../models/user');
 
@@ -47,7 +47,7 @@ const list = (req, res) =>
       const err = formatError(error);
 
       logger[err.level]({ err: error, info: err.info }, `USER-CTRL.LIST: ${err.message}`);
-      return res.status(err.statusCode).json(err.jsonResponse);
+      return res.status(err.statusCode).json({ errors: err.jsonResponse });
     });
 
 /**
@@ -86,7 +86,7 @@ const show = (req, res) =>
       const err = formatError(error);
 
       logger[err.level]({ err: error, info: err.info }, `USER-CTRL.SHOW: ${err.message}`);
-      return res.status(err.statusCode).json(err.jsonResponse);
+      return res.status(err.statusCode).json({ errors: err.jsonResponse });
     });
 
 /**
@@ -160,7 +160,7 @@ const update = (req, res) => {
       const err = formatError(error);
 
       logger[err.level]({ err: error, info: err.info }, `USER-CTRL.UPDATE: ${err.message}`);
-      return res.status(err.statusCode).json(err.jsonResponse);
+      return res.status(err.statusCode).json({ errors: err.jsonResponse });
     });
 };
 
@@ -209,7 +209,7 @@ const destroy = (req, res) =>
       const err = formatError(error);
 
       logger[err.level]({ err: error, info: err.info }, `USER-CTRL.DESTROY: ${err.message}`);
-      return res.status(err.statusCode).json(err.jsonResponse);
+      return res.status(err.statusCode).json({ errors: err.jsonResponse });
     });
 
 module.exports = {
