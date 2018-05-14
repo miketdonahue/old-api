@@ -104,10 +104,15 @@ describe('Black Box Test: Verify-Access', () => {
                   .end((e, res) => {
                     const resBody = res.body;
 
-                    expect(resBody.status).to.equal('fail');
-                    expect(resBody).to.have.all.keys('status', 'name', 'data');
-                    expect(resBody.data).to.have.all.keys('user');
-                    expect(resBody.name).to.equal('Unauthorized');
+                    expect(resBody).to.have.all.keys('errors');
+                    expect(resBody.errors).to.be.an('array');
+                    expect(resBody.errors[0]).to.have.all.keys('statusCode', 'message', 'code', 'source');
+                    expect(resBody.errors[0].statusCode).to.equal('403');
+                    expect(resBody.errors[0].message).to.be.a('string');
+                    expect(resBody.errors[0].code).to.equal('UNAUTHORIZED');
+                    expect(resBody.errors[0].source).to.be.an('object');
+                    expect(resBody.errors[0].source).to.have.all.keys('path');
+                    expect(resBody.errors[0].source.path).to.equal('data/user');
 
                     done(e);
                   });

@@ -39,7 +39,7 @@ function verifyJwt() {
 
     return jwt.verify(token, config.auth.jwt.secret, (err, decoded) => {
       if (err) {
-        logger.warn(`VERIFY-JWT-MIDDLEWARE: ${err.message}`);
+        logger.warn(err, `VERIFY-JWT-MIDDLEWARE: ${err.message}`);
 
         return next(err);
       }

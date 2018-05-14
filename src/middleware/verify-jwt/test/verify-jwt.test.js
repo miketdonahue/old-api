@@ -10,7 +10,7 @@ describe('Unit Test: Verify JWT Middleware', () => {
   let sandbox;
 
   beforeEach(() => {
-    sandbox = sinon.sandbox.create();
+    sandbox = sinon.createSandbox();
 
     mock = {
       req: {},

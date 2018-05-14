@@ -85,10 +85,15 @@ describe('Black Box Test: Auth', () => {
             .end((err, response) => {
               const body = response.body;
 
-              expect(body.status).to.equal('fail');
-              expect(body).to.have.all.keys('status', 'name', 'data');
-              expect(body.data).to.have.all.keys('email');
-              expect(body.name).to.equal('UserExists');
+              expect(body).to.have.all.keys('errors');
+              expect(body.errors).to.be.an('array');
+              expect(body.errors[0]).to.have.all.keys('statusCode', 'message', 'code', 'source');
+              expect(body.errors[0].statusCode).to.equal('400');
+              expect(body.errors[0].message).to.be.a('string');
+              expect(body.errors[0].code).to.equal('DUPLICATE_EMAIL');
+              expect(body.errors[0].source).to.be.an('object');
+              expect(body.errors[0].source).to.have.all.keys('path');
+              expect(body.errors[0].source.path).to.equal('data/user/email');
 
               done(err);
             });
@@ -136,10 +141,15 @@ describe('Black Box Test: Auth', () => {
         .end((err, response) => {
           const body = response.body;
 
-          expect(body.status).to.equal('fail');
-          expect(body).to.have.all.keys('status', 'name', 'data');
-          expect(body.data).to.have.all.keys('token');
-          expect(body.name).to.equal('TokenNotFound');
+          expect(body).to.have.all.keys('errors');
+          expect(body.errors).to.be.an('array');
+          expect(body.errors[0]).to.have.all.keys('statusCode', 'message', 'code', 'source');
+          expect(body.errors[0].statusCode).to.equal('403');
+          expect(body.errors[0].message).to.be.a('string');
+          expect(body.errors[0].code).to.equal('TOKEN_NOT_FOUND');
+          expect(body.errors[0].source).to.be.an('object');
+          expect(body.errors[0].source).to.have.all.keys('path');
+          expect(body.errors[0].source.path).to.equal('data/user/token');
 
           done(err);
         });
@@ -168,10 +178,15 @@ describe('Black Box Test: Auth', () => {
             .end((err, response) => {
               const body = response.body;
 
-              expect(body.status).to.equal('fail');
-              expect(body).to.have.all.keys('status', 'name', 'data');
-              expect(body.data).to.have.all.keys('token');
-              expect(body.name).to.equal('ExpiredToken');
+              expect(body).to.have.all.keys('errors');
+              expect(body.errors).to.be.an('array');
+              expect(body.errors[0]).to.have.all.keys('statusCode', 'message', 'code', 'source');
+              expect(body.errors[0].statusCode).to.equal('403');
+              expect(body.errors[0].message).to.be.a('string');
+              expect(body.errors[0].code).to.equal('TOKEN_EXPIRED');
+              expect(body.errors[0].source).to.be.an('object');
+              expect(body.errors[0].source).to.have.all.keys('path');
+              expect(body.errors[0].source.path).to.equal('data/user/token');
 
               done(err);
             });
@@ -232,14 +247,19 @@ describe('Black Box Test: Auth', () => {
           email: null,
           password: 'password',
         })
-        .expect(400)
+        .expect(401)
         .end((err, response) => {
           const body = response.body;
 
-          expect(body.status).to.equal('fail');
-          expect(body).to.have.all.keys('status', 'name', 'data');
-          expect(body.data).to.have.all.keys('email');
-          expect(body.name).to.equal('InvalidCredentials');
+          expect(body).to.have.all.keys('errors');
+          expect(body.errors).to.be.an('array');
+          expect(body.errors[0]).to.have.all.keys('statusCode', 'message', 'code', 'source');
+          expect(body.errors[0].statusCode).to.equal('401');
+          expect(body.errors[0].message).to.be.a('string');
+          expect(body.errors[0].code).to.equal('INVALID_CREDENTIALS');
+          expect(body.errors[0].source).to.be.an('object');
+          expect(body.errors[0].source).to.have.all.keys('path');
+          expect(body.errors[0].source.path).to.equal('data/user');
 
           done(err);
         });
@@ -256,14 +276,19 @@ describe('Black Box Test: Auth', () => {
               email: user.email,
               password: 'password',
             })
-            .expect(400)
+            .expect(401)
             .end((err, response) => {
               const body = response.body;
 
-              expect(body.status).to.equal('fail');
-              expect(body).to.have.all.keys('status', 'name', 'data');
-              expect(body.data).to.have.all.keys('email');
-              expect(body.name).to.equal('NotConfirmed');
+              expect(body).to.have.all.keys('errors');
+              expect(body.errors).to.be.an('array');
+              expect(body.errors[0]).to.have.all.keys('statusCode', 'message', 'code', 'source');
+              expect(body.errors[0].statusCode).to.equal('401');
+              expect(body.errors[0].message).to.be.a('string');
+              expect(body.errors[0].code).to.equal('USER_NOT_CONFIRMED');
+              expect(body.errors[0].source).to.be.an('object');
+              expect(body.errors[0].source).to.have.all.keys('path');
+              expect(body.errors[0].source.path).to.equal('data/user');
 
               done(err);
             });
@@ -286,14 +311,19 @@ describe('Black Box Test: Auth', () => {
                   email: user.email,
                   password: 'bad_password',
                 })
-                .expect(400)
+                .expect(401)
                 .end((e, res) => {
                   const resBody = res.body;
 
-                  expect(resBody.status).to.equal('fail');
-                  expect(resBody).to.have.all.keys('status', 'name', 'data');
-                  expect(resBody.data).to.have.all.keys('user');
-                  expect(resBody.name).to.equal('InvalidCredentials');
+                  expect(resBody).to.have.all.keys('errors');
+                  expect(resBody.errors).to.be.an('array');
+                  expect(resBody.errors[0]).to.have.all.keys('statusCode', 'message', 'code', 'source');
+                  expect(resBody.errors[0].statusCode).to.equal('401');
+                  expect(resBody.errors[0].message).to.be.a('string');
+                  expect(resBody.errors[0].code).to.equal('INVALID_CREDENTIALS');
+                  expect(resBody.errors[0].source).to.be.an('object');
+                  expect(resBody.errors[0].source).to.have.all.keys('path');
+                  expect(resBody.errors[0].source.path).to.equal('data/user');
 
                   done(e);
                 });
@@ -321,9 +351,12 @@ describe('Black Box Test: Auth', () => {
                 .end((e, res) => {
                   const resBody = res.body;
 
-                  expect(resBody.status).to.equal('error');
-                  expect(resBody).to.have.all.keys('status', 'message', 'name', 'data');
-                  expect(resBody.name).to.equal('Error');
+                  expect(resBody).to.have.all.keys('errors');
+                  expect(resBody.errors).to.be.an('array');
+                  expect(resBody.errors[0]).to.have.all.keys('statusCode', 'message', 'code');
+                  expect(resBody.errors[0].statusCode).to.equal('500');
+                  expect(resBody.errors[0].message).to.be.a('string');
+                  expect(resBody.errors[0].code).to.equal('SERVER_ERROR');
 
                   done(e);
                 });
@@ -382,14 +415,19 @@ describe('Black Box Test: Auth', () => {
         .send({
           email: null,
         })
-        .expect(400)
+        .expect(401)
         .end((err, response) => {
           const body = response.body;
 
-          expect(body.status).to.equal('fail');
-          expect(body).to.have.all.keys('status', 'name', 'data');
-          expect(body.data).to.have.all.keys('email');
-          expect(body.name).to.equal('InvalidCredentials');
+          expect(body).to.have.all.keys('errors');
+          expect(body.errors).to.be.an('array');
+          expect(body.errors[0]).to.have.all.keys('statusCode', 'message', 'code', 'source');
+          expect(body.errors[0].statusCode).to.equal('401');
+          expect(body.errors[0].message).to.be.a('string');
+          expect(body.errors[0].code).to.equal('INVALID_CREDENTIALS');
+          expect(body.errors[0].source).to.be.an('object');
+          expect(body.errors[0].source).to.have.all.keys('path');
+          expect(body.errors[0].source.path).to.equal('data/user');
 
           done(err);
         });
@@ -405,14 +443,19 @@ describe('Black Box Test: Auth', () => {
             .send({
               email: user.email,
             })
-            .expect(400)
+            .expect(401)
             .end((err, response) => {
               const body = response.body;
 
-              expect(body.status).to.equal('fail');
-              expect(body).to.have.all.keys('status', 'name', 'data');
-              expect(body.data).to.have.all.keys('email');
-              expect(body.name).to.equal('NotConfirmed');
+              expect(body).to.have.all.keys('errors');
+              expect(body.errors).to.be.an('array');
+              expect(body.errors[0]).to.have.all.keys('statusCode', 'message', 'code', 'source');
+              expect(body.errors[0].statusCode).to.equal('401');
+              expect(body.errors[0].message).to.be.a('string');
+              expect(body.errors[0].code).to.equal('USER_NOT_CONFIRMED');
+              expect(body.errors[0].source).to.be.an('object');
+              expect(body.errors[0].source).to.have.all.keys('path');
+              expect(body.errors[0].source.path).to.equal('data/user');
 
               done(err);
             });
@@ -483,10 +526,15 @@ describe('Black Box Test: Auth', () => {
         .end((err, response) => {
           const body = response.body;
 
-          expect(body.status).to.equal('fail');
-          expect(body).to.have.all.keys('status', 'name', 'data');
-          expect(body.data).to.have.all.keys('token');
-          expect(body.name).to.equal('TokenNotFound');
+          expect(body).to.have.all.keys('errors');
+          expect(body.errors).to.be.an('array');
+          expect(body.errors[0]).to.have.all.keys('statusCode', 'message', 'code', 'source');
+          expect(body.errors[0].statusCode).to.equal('403');
+          expect(body.errors[0].message).to.be.a('string');
+          expect(body.errors[0].code).to.equal('TOKEN_NOT_FOUND');
+          expect(body.errors[0].source).to.be.an('object');
+          expect(body.errors[0].source).to.have.all.keys('path');
+          expect(body.errors[0].source.path).to.equal('data/user/token');
 
           done(err);
         });
@@ -534,10 +582,15 @@ describe('Black Box Test: Auth', () => {
                         .end((err, response) => {
                           const body = response.body;
 
-                          expect(body.status).to.equal('fail');
-                          expect(body).to.have.all.keys('status', 'name', 'data');
-                          expect(body.data).to.have.all.keys('token');
-                          expect(body.name).to.equal('ExpiredToken');
+                          expect(body).to.have.all.keys('errors');
+                          expect(body.errors).to.be.an('array');
+                          expect(body.errors[0]).to.have.all.keys('statusCode', 'message', 'code', 'source');
+                          expect(body.errors[0].statusCode).to.equal('403');
+                          expect(body.errors[0].message).to.be.a('string');
+                          expect(body.errors[0].code).to.equal('TOKEN_EXPIRED');
+                          expect(body.errors[0].source).to.be.an('object');
+                          expect(body.errors[0].source).to.have.all.keys('path');
+                          expect(body.errors[0].source.path).to.equal('data/user/token');
 
                           done(err);
                         });

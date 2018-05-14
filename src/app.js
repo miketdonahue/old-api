@@ -7,7 +7,7 @@ const bodyParser = require('body-parser');
 const cookieParser = require('cookie-parser');
 const helmet = require('helmet');
 const config = require('config');
-const formatError = require('local-error-formatter');
+const formatError = require('local-error-handler');
 const logger = require('local-logger');
 const requestLogger = require('middleware/request-logger');
 const healthCheck = require('express-healthcheck');
@@ -44,34 +44,38 @@ const authRoutes = require('./api/auth/auth-routes');
 const mailerRoutes = require('./api/mailer/mailer-routes');
 const userRoutes = require('./api/users/users-routes');
 const paymentRoutes = require('./api/payments/payments-routes');
-const swaggerRoutes = require('./api/swagger/swagger-routes');
 
 app.use(`${baseUrl}/auth`, authRoutes);
 app.use(`${baseUrl}/mailer`, mailerRoutes);
 app.use(`${baseUrl}/users`, verifyJwt(), userRoutes);
 app.use(`${baseUrl}/payments`, verifyJwt(), paymentRoutes);
-app.use(`${baseUrl}/swagger`, verifyJwt(), swaggerRoutes);
 
-// Handle unknown routes a.k.a. 404s
+// Handle unknown routes (404s)
 app.use((req, res, next) => { // eslint-disable-line no-unused-vars
-  const serviceError = {
-    name: 'UnknownRoute',
+  const appError = {
+    name: 'AppError',
     message: 'Unknown route requested',
-    statusCode: 404,
-    data: { route: req.url },
+    statusCode: '404',
+    errors: [{
+      statusCode: '404',
+      message: 'Unknown route requested',
+      code: 'UNKNOWN_ROUTE',
+      meta: { route: req.url },
+    }],
   };
 
-  const err = formatError(serviceError);
+  const err = formatError(appError);
 
-  logger.warn(`APP-MIDDLEWARE: ${err.message}`);
-  return res.status(err.statusCode).json(err.jsonResponse);
+  logger.warn({ response: appError }, `APP-MIDDLEWARE: ${err.message}`);
+  return res.status(err.statusCode).json({ errors: err.jsonResponse });
 });
 
 // Error middleware
 app.use((error, req, res, next) => { // eslint-disable-line no-unused-vars
   const err = formatError(error);
 
-  return res.status(err.statusCode).json(err.jsonResponse);
+  logger.error({ err: error, response: err }, `APP-MIDDLEWARE: ${err.message}`);
+  return res.status(err.statusCode).json({ errors: err.jsonResponse });
 });
 
 // Start app

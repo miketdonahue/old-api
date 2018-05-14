@@ -1,6 +1,6 @@
 const logger = require('local-logger');
 const config = require('config');
-const formatError = require('local-error-formatter');
+const formatError = require('local-error-handler');
 const emailClient = require('local-mailer');
 
 /**
@@ -36,8 +36,8 @@ const updateList = (req, res) => {
     .catch((error) => {
       const err = formatError(error);
 
-      logger[err.level]({ err: error, info: err.info }, `MAILER-CTRL.UPDATE-LIST: ${err.message}`);
-      return res.status(err.statusCode).json(err.jsonResponse);
+      logger[err.level]({ err: error, response: err }, `MAILER-CTRL.UPDATE-LIST: ${err.message}`);
+      return res.status(err.statusCode).json({ errors: err.jsonResponse });
     });
 };
 
