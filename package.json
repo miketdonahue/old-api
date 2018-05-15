@@ -8,8 +8,8 @@
     "start": "NODE_ENV=production node src/app.js | bunyan",
     "nodemon": "nodemon src/app.js | bunyan",
     "test": "NODE_ENV=test nyc mocha 'src/**/*.test.js'",
-    "test:watch": "NODE_ENV=test nodemon --exec \"mocha 'src/**/*.test.js'\"",
     "test:bb": "NODE_ENV=test mocha 'src/**/*.test.bb.js' --timeout 30000 --exit",
+    "test:watch": "NODE_ENV=test nodemon --exec \"mocha 'src/**/*.test.js'\"",
     "lint": "eslint 'config/*.js' 'migrations/*.js' 'seeders/*.js' 'src/**/*.js'",
     "migrate": "knex migrate:latest",
     "migrate:undo": "knex migrate:rollback",
@@ -18,25 +18,10 @@
   },
   "nyc": {
     "check-coverage": true,
-    "per-file": true,
-    "watermarks": {
-      "lines": [
-        75,
-        95
-      ],
-      "functions": [
-        75,
-        95
-      ],
-      "branches": [
-        75,
-        95
-      ],
-      "statements": [
-        75,
-        95
-      ]
-    },
+    "lines": 75,
+    "statements": 75,
+    "functions": 75,
+    "branches": 75,
     "reporter": [
       "lcov",
       "text-summary"

@@ -10,8 +10,9 @@ const isBefore = require('date-fns/is_before');
 const { exec } = require('child_process');
 const config = require('config');
 const request = require('supertest')(app);
+const UserModel = require('../../../models/user');
 
-const User = require('../../../models/user');
+const User = new UserModel();
 
 // TODO: Helper that confirms account so downstream actions can be taken
 
@@ -44,7 +45,6 @@ describe('Black Box Test: Auth', () => {
         .end((err, response) => {
           const body = response.body;
 
-          expect(body.status).to.equal('success');
           expect(body.data).to.have.all.keys('user');
           expect(body.data.user).to.have.all.keys('uid');
           expect(shortId.isValid(body.data.user.uid)).to.be.true;
@@ -113,7 +113,7 @@ describe('Black Box Test: Auth', () => {
             .expect(200)
             .end((err, response) => {
               const body = response.body;
-              expect(body.status).to.equal('success');
+
               expect(body.data).to.have.all.keys('user');
               expect(body.data.user).to.have.all.keys('uid');
               expect(shortId.isValid(body.data.user.uid)).to.be.true;
@@ -224,7 +224,6 @@ describe('Black Box Test: Auth', () => {
                   const lowTime = subtractHours(new Date(), 1);
                   const highTime = addHours(new Date(), 1);
 
-                  expect(resBody.status).to.equal('success');
                   expect(resBody.data).to.have.all.keys('token');
 
                   User.knex()
@@ -387,7 +386,6 @@ describe('Black Box Test: Auth', () => {
                 .end((e, res) => {
                   const resBody = res.body;
 
-                  expect(resBody.status).to.equal('success');
                   expect(resBody.data).to.have.all.keys('user');
                   expect(resBody.data.user).to.have.all.keys('uid');
                   expect(shortId.isValid(resBody.data.user.uid)).to.be.true;
@@ -495,7 +493,6 @@ describe('Black Box Test: Auth', () => {
                         .end((err, response) => {
                           const body = response.body;
 
-                          expect(body.status).to.equal('success');
                           expect(body.data).to.have.all.keys('user');
                           expect(body.data.user).to.have.all.keys('uid');
                           expect(shortId.isValid(body.data.user.uid)).to.be.true;

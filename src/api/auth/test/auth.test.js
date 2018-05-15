@@ -5,6 +5,7 @@ const sinon = require('sinon');
 const addHours = require('date-fns/add_hours');
 const subtractHours = require('date-fns/sub_hours');
 const proxyquire = require('proxyquire').noCallThru();
+const UserModel = require('../../../models/user');
 
 describe('Unit Test: Auth', () => {
   let mock;
@@ -19,17 +20,6 @@ describe('Unit Test: Auth', () => {
       res: {
         status: sinon.spy(() => mock.res),
         json: sinon.spy(),
-      },
-      userModel: {
-        knex: sandbox.stub().returnsThis(),
-        innerJoin: sandbox.stub(),
-        where: sandbox.stub(),
-        first: sandbox.stub(),
-        create: sandbox.stub(),
-        update: sandbox.stub(),
-        comparePassword: sandbox.stub(),
-        hashPassword: sandbox.stub(),
-        validate: sandbox.stub(),
       },
       mailer: {
         sendConfirmMail: sandbox.stub(),
@@ -62,7 +52,6 @@ describe('Unit Test: Auth', () => {
     };
 
     authController = proxyquire('../auth-controller', {
-      '../../models/user': mock.userModel,
       './auth-emails': mock.mailer,
       'local-logger': mock.logger,
       jsonwebtoken: mock.jsonwebtoken,
@@ -76,7 +65,6 @@ describe('Unit Test: Auth', () => {
 
   describe('Signup', () => {
     it('should create a new user if the given email does not exist', () => {
-      const userModel = mock.userModel;
       const user = { uid: '123abc' };
       const req = {
         body: {
@@ -90,9 +78,12 @@ describe('Unit Test: Auth', () => {
 
       mock.mailer.sendConfirmMail.resolves({ user });
 
-      userModel.where.returnsThis();
-      userModel.first.resolves(null);
-      userModel.create.resolves(user);
+      sandbox.stub(UserModel.prototype, 'create').resolves(user);
+      sandbox.stub(UserModel.prototype, 'knex').returns({
+        where: () => ({
+          first: sandbox.stub().resolves(null),
+        }),
+      });
 
       return authController.signup(req, mock.res).then(() => {
         const status = mock.res.status.getCall(0).args[0];
@@ -103,8 +94,7 @@ describe('Unit Test: Auth', () => {
         expect(mock.mailer.sendConfirmMail.calledOnce).to.be.true;
 
         expect(status).to.equal(201);
-        expect(response.status).to.equal('success');
-        expect(response).to.have.all.keys('status', 'data');
+        expect(response).to.have.all.keys('data');
         expect(response.data).to.have.all.keys('user');
         expect(response.data.user).to.have.all.keys('uid');
         expect(response.data.user.uid).to.equal('123abc');
@@ -112,7 +102,7 @@ describe('Unit Test: Auth', () => {
     });
 
     it('should throw an error if the given email already exists', () => {
-      const userModel = mock.userModel;
+      const createUser = sandbox.stub(UserModel.prototype, 'create');
       const req = {
         body: {
           email: 'mike@mail.com',
@@ -123,8 +113,11 @@ describe('Unit Test: Auth', () => {
         email: 'mike@mail.com',
       };
 
-      userModel.where.returnsThis();
-      userModel.first.resolves(user);
+      sandbox.stub(UserModel.prototype, 'knex').returns({
+        where: () => ({
+          first: sandbox.stub().resolves(user),
+        }),
+      });
 
       return authController.signup(req, mock.res).then(() => {
         const status = mock.res.status.getCall(0).args[0];
@@ -133,7 +126,7 @@ describe('Unit Test: Auth', () => {
         expect(mock.res.status.calledOnce).to.be.true;
         expect(mock.res.json.calledOnce).to.be.true;
         expect(mock.mailer.sendConfirmMail.calledOnce).to.be.false;
-        expect(userModel.create.calledOnce).to.be.false;
+        expect(createUser.calledOnce).to.be.false;
 
         expect(status).to.equal('400');
         expect(response).to.have.all.keys('errors');
@@ -151,7 +144,7 @@ describe('Unit Test: Auth', () => {
 
   describe('Confirm Account', () => {
     it('should save a user\'s confirmed attributes', () => {
-      const userModel = mock.userModel;
+      const updateUser = sandbox.stub(UserModel.prototype, 'update');
       const req = {
         query: {
           confirmToken: 'xyz',
@@ -163,18 +156,20 @@ describe('Unit Test: Auth', () => {
         confirmed_expires: addHours(new Date(), 1),
       };
 
-      userModel.where.returnsThis();
-      userModel.first.resolves(user);
-      userModel.update.resolves(user);
+      updateUser.resolves(user);
+      sandbox.stub(UserModel.prototype, 'knex').returns({
+        where: () => ({
+          first: sandbox.stub().resolves(user),
+        }),
+      });
 
       return authController.confirmAccount(req, mock.res).then(() => {
         const response = mock.res.json.getCall(0).args[0];
 
-        expect(userModel.update.calledOnce).to.be.true;
+        expect(updateUser.calledOnce).to.be.true;
         expect(mock.res.json.calledOnce).to.be.true;
 
-        expect(response.status).to.equal('success');
-        expect(response).to.have.all.keys('status', 'data');
+        expect(response).to.have.all.keys('data');
         expect(response.data).to.have.all.keys('user');
         expect(response.data.user).to.have.all.keys('uid');
         expect(response.data.user.uid).to.equal('123abc');
@@ -182,21 +177,24 @@ describe('Unit Test: Auth', () => {
     });
 
     it('should throw an error if the given user is not found', () => {
-      const userModel = mock.userModel;
+      const updateUser = sandbox.stub(UserModel.prototype, 'update');
       const req = {
         query: {
           confirmToken: 'xyz',
         },
       };
 
-      userModel.where.returnsThis();
-      userModel.first.resolves(null);
+      sandbox.stub(UserModel.prototype, 'knex').returns({
+        where: () => ({
+          first: sandbox.stub().resolves(null),
+        }),
+      });
 
       return authController.confirmAccount(req, mock.res).then(() => {
         const status = mock.res.status.getCall(0).args[0];
         const response = mock.res.json.getCall(0).args[0];
 
-        expect(userModel.update.calledOnce).to.be.false;
+        expect(updateUser.calledOnce).to.be.false;
         expect(mock.res.status.calledOnce).to.be.true;
         expect(mock.res.json.calledOnce).to.be.true;
 
@@ -214,7 +212,7 @@ describe('Unit Test: Auth', () => {
     });
 
     it('should throw an error if the given user\'s confirm token has expired', () => {
-      const userModel = mock.userModel;
+      const updateUser = sandbox.stub(UserModel.prototype, 'update');
       const req = {
         query: {
           confirmToken: 'xyz',
@@ -225,14 +223,17 @@ describe('Unit Test: Auth', () => {
         confirmed_expires: subtractHours(new Date(), 1),
       };
 
-      userModel.where.returnsThis();
-      userModel.first.resolves(user);
+      sandbox.stub(UserModel.prototype, 'knex').returns({
+        where: () => ({
+          first: sandbox.stub().resolves(user),
+        }),
+      });
 
       return authController.confirmAccount(req, mock.res).then(() => {
         const status = mock.res.status.getCall(0).args[0];
         const response = mock.res.json.getCall(0).args[0];
 
-        expect(userModel.update.calledOnce).to.be.false;
+        expect(updateUser.calledOnce).to.be.false;
         expect(mock.res.status.calledOnce).to.be.true;
         expect(mock.res.json.calledOnce).to.be.true;
 
@@ -252,7 +253,8 @@ describe('Unit Test: Auth', () => {
 
   describe('Login', () => {
     it('should login a user and return the JWT token', () => {
-      const userModel = mock.userModel;
+      const comparePassword = sandbox.stub(UserModel.prototype, 'comparePassword');
+      const updateUser = sandbox.stub(UserModel.prototype, 'update');
       const req = {
         body: {
           email: 'mike@mail.com',
@@ -266,40 +268,49 @@ describe('Unit Test: Auth', () => {
         role: 'user',
       };
 
-      userModel.innerJoin.returnsThis();
-      userModel.where.returnsThis();
-      userModel.first.resolves(user);
-      userModel.comparePassword.resolves({ isMatch: true, user });
-      userModel.update.resolves(user);
+      comparePassword.resolves({ isMatch: true, user });
+      updateUser.resolves(user);
+      sandbox.stub(UserModel.prototype, 'create').resolves(user);
+      sandbox.stub(UserModel.prototype, 'knex').returns({
+        innerJoin: () => ({
+          where: () => ({
+            first: sandbox.stub().resolves(user),
+          }),
+        }),
+      });
 
       mock.jsonwebtoken.sign.yields(null, 'jwtToken');
 
       return authController.login(req, mock.res).then(() => {
         const response = mock.res.json.getCall(0).args[0];
 
-        expect(userModel.comparePassword.calledOnce).to.be.true;
-        expect(userModel.update.calledOnce).to.be.true;
+        expect(comparePassword.calledOnce).to.be.true;
+        expect(updateUser.calledOnce).to.be.true;
         expect(mock.jsonwebtoken.sign.calledOnce).to.be.true;
         expect(mock.res.json.calledOnce).to.be.true;
 
-        expect(response.status).to.equal('success');
-        expect(response).to.have.all.keys('status', 'data');
+        expect(response).to.have.all.keys('data');
         expect(response.data).to.have.all.keys('token');
         expect(response.data.token).to.equal('jwtToken');
       });
     });
 
     it('should throw an error if the given user is not found', () => {
-      const userModel = mock.userModel;
+      const comparePassword = sandbox.stub(UserModel.prototype, 'comparePassword');
+      const updateUser = sandbox.stub(UserModel.prototype, 'update');
       const req = {
         body: {
           email: 'mike@mail.com',
         },
       };
 
-      userModel.innerJoin.returnsThis();
-      userModel.where.returnsThis();
-      userModel.first.resolves(null);
+      sandbox.stub(UserModel.prototype, 'knex').returns({
+        innerJoin: () => ({
+          where: () => ({
+            first: sandbox.stub().resolves(null),
+          }),
+        }),
+      });
 
       return authController.login(req, mock.res).then(() => {
         const status = mock.res.status.getCall(0).args[0];
@@ -307,8 +318,8 @@ describe('Unit Test: Auth', () => {
 
         expect(mock.res.status.calledOnce).to.be.true;
         expect(mock.res.json.calledOnce).to.be.true;
-        expect(userModel.comparePassword.calledOnce).to.be.false;
-        expect(userModel.update.calledOnce).to.be.false;
+        expect(comparePassword.calledOnce).to.be.false;
+        expect(updateUser.calledOnce).to.be.false;
         expect(mock.jsonwebtoken.sign.calledOnce).to.be.false;
 
         expect(status).to.equal('401');
@@ -325,7 +336,8 @@ describe('Unit Test: Auth', () => {
     });
 
     it('should throw an error if the user has not confirmed their account', () => {
-      const userModel = mock.userModel;
+      const comparePassword = sandbox.stub(UserModel.prototype, 'comparePassword');
+      const updateUser = sandbox.stub(UserModel.prototype, 'update');
       const req = {
         body: {
           email: 'mike@mail.com',
@@ -336,9 +348,13 @@ describe('Unit Test: Auth', () => {
         confirmed: false,
       };
 
-      userModel.innerJoin.returnsThis();
-      userModel.where.returnsThis();
-      userModel.first.resolves(user);
+      sandbox.stub(UserModel.prototype, 'knex').returns({
+        innerJoin: () => ({
+          where: () => ({
+            first: sandbox.stub().resolves(user),
+          }),
+        }),
+      });
 
       return authController.login(req, mock.res).then(() => {
         const status = mock.res.status.getCall(0).args[0];
@@ -346,8 +362,8 @@ describe('Unit Test: Auth', () => {
 
         expect(mock.res.status.calledOnce).to.be.true;
         expect(mock.res.json.calledOnce).to.be.true;
-        expect(userModel.comparePassword.calledOnce).to.be.false;
-        expect(userModel.update.calledOnce).to.be.false;
+        expect(comparePassword.calledOnce).to.be.false;
+        expect(updateUser.calledOnce).to.be.false;
         expect(mock.jsonwebtoken.sign.calledOnce).to.be.false;
 
         expect(status).to.equal('401');
@@ -364,7 +380,8 @@ describe('Unit Test: Auth', () => {
     });
 
     it('should throw an error if the given password does not match the user\'s password', () => {
-      const userModel = mock.userModel;
+      const comparePassword = sandbox.stub(UserModel.prototype, 'comparePassword');
+      const updateUser = sandbox.stub(UserModel.prototype, 'update');
       const req = {
         body: {
           email: 'mike@mail.com',
@@ -377,10 +394,16 @@ describe('Unit Test: Auth', () => {
         confirmed: true,
       };
 
-      userModel.innerJoin.returnsThis();
-      userModel.where.returnsThis();
-      userModel.first.resolves(user);
-      userModel.comparePassword.resolves({ isMatch: false, user });
+      comparePassword.resolves({ isMatch: false, user });
+      updateUser.resolves(user);
+      sandbox.stub(UserModel.prototype, 'create').resolves(user);
+      sandbox.stub(UserModel.prototype, 'knex').returns({
+        innerJoin: () => ({
+          where: () => ({
+            first: sandbox.stub().resolves(user),
+          }),
+        }),
+      });
 
       return authController.login(req, mock.res).then(() => {
         const status = mock.res.status.getCall(0).args[0];
@@ -388,8 +411,8 @@ describe('Unit Test: Auth', () => {
 
         expect(mock.res.status.calledOnce).to.be.true;
         expect(mock.res.json.calledOnce).to.be.true;
-        expect(userModel.comparePassword.calledOnce).to.be.true;
-        expect(userModel.update.calledOnce).to.be.false;
+        expect(comparePassword.calledOnce).to.be.true;
+        expect(updateUser.calledOnce).to.be.false;
         expect(mock.jsonwebtoken.sign.calledOnce).to.be.false;
 
         expect(status).to.equal('401');
@@ -406,7 +429,8 @@ describe('Unit Test: Auth', () => {
     });
 
     it('should throw an error if the JWT has an error', () => {
-      const userModel = mock.userModel;
+      const comparePassword = sandbox.stub(UserModel.prototype, 'comparePassword');
+      const updateUser = sandbox.stub(UserModel.prototype, 'update');
       const error = {
         name: 'JsonWebTokenError',
         message: 'jwt signature is required',
@@ -424,11 +448,16 @@ describe('Unit Test: Auth', () => {
         role: 'user',
       };
 
-      userModel.innerJoin.returnsThis();
-      userModel.where.returnsThis();
-      userModel.first.resolves(user);
-      userModel.comparePassword.resolves({ isMatch: true, user });
-      userModel.update.resolves(user);
+      comparePassword.resolves({ isMatch: true, user });
+      updateUser.resolves(user);
+      sandbox.stub(UserModel.prototype, 'create').resolves(user);
+      sandbox.stub(UserModel.prototype, 'knex').returns({
+        innerJoin: () => ({
+          where: () => ({
+            first: sandbox.stub().resolves(user),
+          }),
+        }),
+      });
 
       mock.jsonwebtoken.sign.yields(error);
 
@@ -438,8 +467,8 @@ describe('Unit Test: Auth', () => {
 
         expect(mock.res.status.calledOnce).to.be.true;
         expect(mock.res.json.calledOnce).to.be.true;
-        expect(userModel.comparePassword.calledOnce).to.be.true;
-        expect(userModel.update.calledOnce).to.be.true;
+        expect(comparePassword.calledOnce).to.be.true;
+        expect(updateUser.calledOnce).to.be.true;
         expect(mock.jsonwebtoken.sign.calledOnce).to.be.true;
 
         expect(status).to.equal('500');
@@ -455,7 +484,7 @@ describe('Unit Test: Auth', () => {
 
   describe('Forgot Password', () => {
     it('should create a reset password token and send forgotten password email', () => {
-      const userModel = mock.userModel;
+      const updateUser = sandbox.stub(UserModel.prototype, 'update');
       const req = {
         body: {
           email: 'mike@mail.com',
@@ -471,18 +500,20 @@ describe('Unit Test: Auth', () => {
 
       mock.mailer.sendResetPasswordMail.resolves({ user });
 
-      userModel.where.returnsThis();
-      userModel.first.resolves(user);
+      sandbox.stub(UserModel.prototype, 'knex').returns({
+        where: () => ({
+          first: sandbox.stub().resolves(user),
+        }),
+      });
 
       return authController.forgotPassword(req, mock.res).then(() => {
         const response = mock.res.json.getCall(0).args[0];
 
         expect(mock.res.json.calledOnce).to.be.true;
-        expect(userModel.update.calledOnce).to.be.true;
+        expect(updateUser.calledOnce).to.be.true;
         expect(mock.mailer.sendResetPasswordMail.calledOnce).to.be.true;
 
-        expect(response.status).to.equal('success');
-        expect(response).to.have.all.keys('status', 'data');
+        expect(response).to.have.all.keys('data');
         expect(response.data).to.have.all.keys('user');
         expect(response.data.user).to.have.all.keys('uid');
         expect(response.data.user.uid).to.equal('123abc');
@@ -490,15 +521,18 @@ describe('Unit Test: Auth', () => {
     });
 
     it('should throw an error if the given user is not found', () => {
-      const userModel = mock.userModel;
+      const updateUser = sandbox.stub(UserModel.prototype, 'update');
       const req = {
         body: {
           email: 'mike@mail.com',
         },
       };
 
-      userModel.where.returnsThis();
-      userModel.first.resolves(null);
+      sandbox.stub(UserModel.prototype, 'knex').returns({
+        where: () => ({
+          first: sandbox.stub().resolves(null),
+        }),
+      });
 
       return authController.forgotPassword(req, mock.res).then(() => {
         const status = mock.res.status.getCall(0).args[0];
@@ -506,7 +540,7 @@ describe('Unit Test: Auth', () => {
 
         expect(mock.res.status.calledOnce).to.be.true;
         expect(mock.res.json.calledOnce).to.be.true;
-        expect(userModel.update.calledOnce).to.be.false;
+        expect(updateUser.calledOnce).to.be.false;
 
         expect(status).to.equal('401');
         expect(response).to.have.all.keys('errors');
@@ -522,7 +556,7 @@ describe('Unit Test: Auth', () => {
     });
 
     it('should throw an error if the user has not confirmed their account', () => {
-      const userModel = mock.userModel;
+      const updateUser = sandbox.stub(UserModel.prototype, 'update');
       const req = {
         body: {
           email: 'mike@mail.com',
@@ -533,8 +567,11 @@ describe('Unit Test: Auth', () => {
         confirmed: false,
       };
 
-      userModel.where.returnsThis();
-      userModel.first.resolves(user);
+      sandbox.stub(UserModel.prototype, 'knex').returns({
+        where: () => ({
+          first: sandbox.stub().resolves(user),
+        }),
+      });
 
       return authController.forgotPassword(req, mock.res).then(() => {
         const status = mock.res.status.getCall(0).args[0];
@@ -542,7 +579,7 @@ describe('Unit Test: Auth', () => {
 
         expect(mock.res.status.calledOnce).to.be.true;
         expect(mock.res.json.calledOnce).to.be.true;
-        expect(userModel.update.calledOnce).to.be.false;
+        expect(updateUser.calledOnce).to.be.false;
 
         expect(status).to.equal('401');
         expect(response).to.have.all.keys('errors');
@@ -560,7 +597,9 @@ describe('Unit Test: Auth', () => {
 
   describe('Reset Password', () => {
     it('should hash and save a user\'s new password and reset password attributes', () => {
-      const userModel = mock.userModel;
+      const comparePassword = sandbox.stub(UserModel.prototype, 'comparePassword');
+      const hashPassword = sandbox.stub(UserModel.prototype, 'hashPassword');
+      const updateUser = sandbox.stub(UserModel.prototype, 'update');
       const req = {
         query: {
           resetPasswordToken: 'xyz',
@@ -575,22 +614,24 @@ describe('Unit Test: Auth', () => {
         reset_password_expires: addHours(new Date(), 1),
       };
 
-      userModel.where.returnsThis();
-      userModel.first.resolves(user);
-      userModel.comparePassword.resolves({ isMatch: false, user });
-      userModel.hashPassword.resolves({ hashedPassword: 'new_password', user });
-      userModel.update.resolves(user);
+      comparePassword.resolves({ isMatch: false, user });
+      hashPassword.resolves({ hashedPassword: 'new_password', user });
+      updateUser.resolves(user);
+      sandbox.stub(UserModel.prototype, 'knex').returns({
+        where: () => ({
+          first: sandbox.stub().resolves(user),
+        }),
+      });
 
       return authController.resetPassword(req, mock.res).then(() => {
         const response = mock.res.json.getCall(0).args[0];
 
-        expect(userModel.comparePassword.calledOnce).to.be.true;
-        expect(userModel.hashPassword.calledOnce).to.be.true;
-        expect(userModel.update.calledOnce).to.be.true;
+        expect(comparePassword.calledOnce).to.be.true;
+        expect(hashPassword.calledOnce).to.be.true;
+        expect(updateUser.calledOnce).to.be.true;
         expect(mock.res.json.calledOnce).to.be.true;
 
-        expect(response.status).to.equal('success');
-        expect(response).to.have.all.keys('status', 'data');
+        expect(response).to.have.all.keys('data');
         expect(response.data).to.have.all.keys('user');
         expect(response.data.user).to.have.all.keys('uid');
         expect(response.data.user.uid).to.equal('123abc');
@@ -598,23 +639,28 @@ describe('Unit Test: Auth', () => {
     });
 
     it('should throw an error if the given user is not found', () => {
-      const userModel = mock.userModel;
+      const comparePassword = sandbox.stub(UserModel.prototype, 'comparePassword');
+      const hashPassword = sandbox.stub(UserModel.prototype, 'hashPassword');
+      const updateUser = sandbox.stub(UserModel.prototype, 'update');
       const req = {
         query: {
           resetPasswordToken: 'xyz',
         },
       };
 
-      userModel.where.returnsThis();
-      userModel.first.resolves(null);
+      sandbox.stub(UserModel.prototype, 'knex').returns({
+        where: () => ({
+          first: sandbox.stub().resolves(null),
+        }),
+      });
 
       return authController.resetPassword(req, mock.res).then(() => {
         const status = mock.res.status.getCall(0).args[0];
         const response = mock.res.json.getCall(0).args[0];
 
-        expect(userModel.comparePassword.calledOnce).to.be.false;
-        expect(userModel.hashPassword.calledOnce).to.be.false;
-        expect(userModel.update.calledOnce).to.be.false;
+        expect(comparePassword.calledOnce).to.be.false;
+        expect(hashPassword.calledOnce).to.be.false;
+        expect(updateUser.calledOnce).to.be.false;
         expect(mock.res.status.calledOnce).to.be.true;
         expect(mock.res.json.calledOnce).to.be.true;
 
@@ -632,7 +678,9 @@ describe('Unit Test: Auth', () => {
     });
 
     it('should throw an error if the given user\'s reset password token has expired', () => {
-      const userModel = mock.userModel;
+      const comparePassword = sandbox.stub(UserModel.prototype, 'comparePassword');
+      const hashPassword = sandbox.stub(UserModel.prototype, 'hashPassword');
+      const updateUser = sandbox.stub(UserModel.prototype, 'update');
       const req = {
         query: {
           resetPasswordToken: 'xyz',
@@ -643,16 +691,19 @@ describe('Unit Test: Auth', () => {
         reset_password_expires: subtractHours(new Date(), 1),
       };
 
-      userModel.where.returnsThis();
-      userModel.first.resolves(user);
+      sandbox.stub(UserModel.prototype, 'knex').returns({
+        where: () => ({
+          first: sandbox.stub().resolves(user),
+        }),
+      });
 
       return authController.resetPassword(req, mock.res).then(() => {
         const status = mock.res.status.getCall(0).args[0];
         const response = mock.res.json.getCall(0).args[0];
 
-        expect(userModel.comparePassword.calledOnce).to.be.false;
-        expect(userModel.hashPassword.calledOnce).to.be.false;
-        expect(userModel.update.calledOnce).to.be.false;
+        expect(comparePassword.calledOnce).to.be.false;
+        expect(hashPassword.calledOnce).to.be.false;
+        expect(updateUser.calledOnce).to.be.false;
         expect(mock.res.status.calledOnce).to.be.true;
         expect(mock.res.json.calledOnce).to.be.true;
 
@@ -670,7 +721,9 @@ describe('Unit Test: Auth', () => {
     });
 
     it('should not hash and save a user\'s password if it is the same as the current password', () => {
-      const userModel = mock.userModel;
+      const comparePassword = sandbox.stub(UserModel.prototype, 'comparePassword');
+      const hashPassword = sandbox.stub(UserModel.prototype, 'hashPassword');
+      const updateUser = sandbox.stub(UserModel.prototype, 'update');
       const req = {
         query: {
           resetPasswordToken: 'xyz',
@@ -685,21 +738,23 @@ describe('Unit Test: Auth', () => {
         reset_password_expires: addHours(new Date(), 1),
       };
 
-      userModel.where.returnsThis();
-      userModel.first.resolves(user);
-      userModel.comparePassword.resolves({ isMatch: true, user });
-      userModel.update.resolves(user);
+      comparePassword.resolves({ isMatch: true, user });
+      updateUser.resolves(user);
+      sandbox.stub(UserModel.prototype, 'knex').returns({
+        where: () => ({
+          first: sandbox.stub().resolves(user),
+        }),
+      });
 
       return authController.resetPassword(req, mock.res).then(() => {
         const response = mock.res.json.getCall(0).args[0];
 
-        expect(userModel.hashPassword.calledOnce).to.be.false;
-        expect(userModel.comparePassword.calledOnce).to.be.true;
-        expect(userModel.update.calledOnce).to.be.true;
+        expect(hashPassword.calledOnce).to.be.false;
+        expect(comparePassword.calledOnce).to.be.true;
+        expect(updateUser.calledOnce).to.be.true;
         expect(mock.res.json.calledOnce).to.be.true;
 
-        expect(response.status).to.equal('success');
-        expect(response).to.have.all.keys('status', 'data');
+        expect(response).to.have.all.keys('data');
         expect(response.data).to.have.all.keys('user');
         expect(response.data.user).to.have.all.keys('uid');
         expect(response.data.user.uid).to.equal('123abc');
@@ -709,7 +764,7 @@ describe('Unit Test: Auth', () => {
 
   describe('Resend Confirmation Email', () => {
     it('should resend the confirmation email', () => {
-      const userModel = mock.userModel;
+      const updateUser = sandbox.stub(UserModel.prototype, 'update');
       const req = {
         body: {
           uid: '123abc',
@@ -720,41 +775,47 @@ describe('Unit Test: Auth', () => {
         uid: '123abc',
       };
 
-      userModel.where.returnsThis();
-      userModel.first.resolves(user);
       mock.mailer.sendConfirmMail.resolves({ user });
-      userModel.update.resolves(user);
+
+      updateUser.resolves(user);
+      sandbox.stub(UserModel.prototype, 'knex').returns({
+        where: () => ({
+          first: sandbox.stub().resolves(user),
+        }),
+      });
 
       return authController.resendConfirmation(req, mock.res).then(() => {
         const response = mock.res.json.getCall(0).args[0];
 
         expect(mock.res.json.calledOnce).to.be.true;
         expect(mock.mailer.sendConfirmMail.calledOnce).to.be.true;
-        expect(userModel.update.calledOnce).to.be.true;
+        expect(updateUser.calledOnce).to.be.true;
 
-        expect(response.status).to.equal('success');
-        expect(response).to.have.all.keys('status', 'data');
+        expect(response).to.have.all.keys('data');
         expect(response.data).to.be.null;
       });
     });
 
     it('should throw an error if no user is found', () => {
-      const userModel = mock.userModel;
+      const updateUser = sandbox.stub(UserModel.prototype, 'update');
       const req = {
         body: {
           uid: '123abc',
         },
       };
 
-      userModel.where.returnsThis();
-      userModel.first.resolves(null);
+      sandbox.stub(UserModel.prototype, 'knex').returns({
+        where: () => ({
+          first: sandbox.stub().resolves(null),
+        }),
+      });
 
       return authController.resendConfirmation(req, mock.res).then(() => {
         const status = mock.res.status.getCall(0).args[0];
         const response = mock.res.json.getCall(0).args[0];
 
         expect(mock.mailer.sendConfirmMail.called).to.be.false;
-        expect(userModel.update.calledOnce).to.be.false;
+        expect(updateUser.calledOnce).to.be.false;
         expect(mock.res.status.calledOnce).to.be.true;
         expect(mock.res.json.calledOnce).to.be.true;
 
@@ -772,7 +833,7 @@ describe('Unit Test: Auth', () => {
     });
 
     it('should throw an error if emailClient has an error', () => {
-      const userModel = mock.userModel;
+      const updateUser = sandbox.stub(UserModel.prototype, 'update');
       const error = {
         name: 'SparkPostError',
         statusCode: '500',
@@ -788,8 +849,12 @@ describe('Unit Test: Auth', () => {
         uid: '123abc',
       };
 
-      userModel.where.returnsThis();
-      userModel.first.resolves(user);
+      sandbox.stub(UserModel.prototype, 'knex').returns({
+        where: () => ({
+          first: sandbox.stub().resolves(user),
+        }),
+      });
+
       mock.mailer.sendConfirmMail.rejects(error);
 
       return authController.resendConfirmation(req, mock.res).then(() => {
@@ -797,7 +862,7 @@ describe('Unit Test: Auth', () => {
         const response = mock.res.json.getCall(0).args[0];
 
         expect(mock.mailer.sendConfirmMail.calledOnce).to.be.true;
-        expect(userModel.update.called).to.be.false;
+        expect(updateUser.called).to.be.false;
         expect(mock.res.status.calledOnce).to.be.true;
         expect(mock.res.json.calledOnce).to.be.true;
 

@@ -1,10 +1,115 @@
 /* eslint-disable no-unused-expressions */
 
 const { expect } = require('chai');
-const User = require('../user');
+const { exec } = require('child_process');
+const UserModel = require('../user');
 
 describe('Unit Test: User Model', () => {
-  describe('Valid', () => {
+  const User = new UserModel();
+
+  beforeEach((done) => {
+    exec('NODE_ENV=test yarn migrate && yarn seed', (error) => {
+      done(error);
+    });
+  });
+
+  afterEach((done) => {
+    exec('NODE_ENV=test yarn migrate:undo', (error) => {
+      done(error);
+    });
+  });
+
+  describe('Methods', () => {
+    it('knex: should query table equal to agurment value', () => {
+      try {
+        const calledTable = User.knex('model');
+
+        expect(calledTable._single.table).to.equal('model'); // eslint-disable-line
+      } catch (error) {
+        expect(error).to.be.undefined;
+      }
+    });
+
+    it('create: should create a new user', () => {
+      try {
+        User.create({
+          email: 'mike@xxxxx.com',
+          first_name: 'Mike',
+          last_name: 'James',
+          password: 'password',
+        });
+      } catch (error) {
+        expect(error).to.be.undefined;
+      }
+    });
+
+    it('update: should update a user', () => {
+      try {
+        User.create({
+          email: 'mike@xxxxx.com',
+          first_name: 'Mike',
+          last_name: 'James',
+          password: 'password',
+        })
+          .then((user) => {
+            User.update(user, { email: 'mike@yyyyy.com' });
+          });
+      } catch (error) {
+        expect(error).to.be.undefined;
+      }
+    });
+
+    it('comparePassword: should return true if password is the same', () => {
+      try {
+        User.create({
+          email: 'mike@xxxxx.com',
+          first_name: 'Mike',
+          last_name: 'James',
+          password: 'password',
+        })
+          .then((user) => {
+            User.comparePassword(user, 'password')
+              .then(({ isMatch }) => {
+                expect(isMatch).to.be.true;
+              });
+          });
+      } catch (error) {
+        expect(error).to.be.undefined;
+      }
+    });
+
+    it('hashPassword: should return a hashed password as a string', () => {
+      try {
+        User.create({
+          email: 'mike@xxxxx.com',
+          first_name: 'Mike',
+          last_name: 'James',
+          password: 'password',
+        })
+          .then((user) => {
+            User.hashPassword(user, 'password')
+              .then(({ hashedPassword }) => {
+                expect(hashedPassword).to.be.a('string');
+              });
+          });
+      } catch (error) {
+        expect(error).to.be.undefined;
+      }
+    });
+
+    it('_getRole: should return an ID as an integer of the given role name', () => {
+      try {
+        // eslint-disable-next-line
+        User._getRole('user').then((role) => {
+          expect(role.id).to.be.a('number');
+        });
+      } catch (error) {
+        expect(error).to.be.undefined;
+      }
+    });
+  });
+
+  describe('Validations: Passing', () => {
     it('should return undefined for a user passing validations', () => {
       try {
         User.validate({
@@ -19,7 +124,7 @@ describe('Unit Test: User Model', () => {
     });
   });
 
-  describe('Invalid', () => {
+  describe('Validations: Failing', () => {
     it('should only allow letters in the first name', () => {
       try {
         User.validate({

@@ -32,7 +32,7 @@ const updateList = (req, res) => {
 
       return emailClient.updateList(listId, recipientList);
     })
-    .then(() => res.json({ status: 'success', data: null }))
+    .then(() => res.json({ data: null }))
     .catch((error) => {
       const err = formatError(error);
 

@@ -5,8 +5,9 @@ const { expect } = require('chai');
 const config = require('config');
 const { exec } = require('child_process');
 const request = require('supertest')(app);
+const UserModel = require('../../../models/user');
 
-const User = require('../../../models/user');
+const User = new UserModel();
 
 describe('Black Box Test: Verify-Jwt', () => {
   beforeEach((done) => {
@@ -53,7 +54,6 @@ describe('Black Box Test: Verify-Jwt', () => {
                   .end((e, res) => {
                     const resBody = res.body;
 
-                    expect(resBody.status).to.equal('success');
                     expect(resBody.data).to.have.all.keys('user');
                     expect(resBody.data.user).to.be.an('object');
 

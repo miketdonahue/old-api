@@ -7,7 +7,9 @@ const ApiError = require('local-errors');
 const formatError = require('local-error-handler');
 const authErrors = require('./auth-errors');
 const emailClient = require('./auth-emails');
-const User = require('../../models/user');
+const UserModel = require('../../models/user');
+
+const User = new UserModel();
 
 /**
  * User sign up flow
@@ -63,9 +65,9 @@ const signup = (req, res) =>
 
       throw new ApiError(appError);
     })
-    .then(({ user }) => {
-      res.status(201).json({ status: 'success', data: { user: { uid: user.uid } } });
-    })
+    .then(({ user }) =>
+      res.status(201).json({ data: { user: { uid: user.uid } } }),
+    )
     .catch((error) => {
       const err = formatError(error);
 
@@ -106,7 +108,7 @@ const confirmAccount = (req, res) => {
     })
     .then((updatedUser) => {
       logger.info({ uid: updatedUser.uid }, 'AUTH-CTRL.CONFIRM-ACCOUNT: Account was confirmed');
-      return res.json({ status: 'success', data: { user: { uid: updatedUser.uid } } });
+      return res.json({ data: { user: { uid: updatedUser.uid } } });
     })
     .catch((error) => {
       const err = formatError(error);
@@ -177,7 +179,7 @@ const login = (req, res) =>
         if (e) throw (e);
 
         logger.info({ uid: updatedUser.uid }, 'AUTH-CTRL.LOGIN: Logging in user');
-        return res.json({ status: 'success', data: { token } });
+        return res.json({ data: { token } });
       });
     })
     .catch((error) => {
@@ -221,7 +223,7 @@ const forgotPassword = (req, res) =>
       });
     })
     .then(updatedUser => emailClient.sendResetPasswordMail(updatedUser))
-    .then(({ user }) => res.json({ status: 'success', data: { user: { uid: user.uid } } }))
+    .then(({ user }) => res.json({ data: { user: { uid: user.uid } } }))
     .catch((error) => {
       const err = formatError(error);
 
@@ -292,7 +294,7 @@ const resetPassword = (req, res) => {
         uid: updatedUser.uid,
       }, 'AUTH-CTRL.RESET-PASSWORD: User password has been reset');
 
-      return res.json({ status: 'success', data: { user: { uid: updatedUser.uid } } });
+      return res.json({ data: { user: { uid: updatedUser.uid } } });
     })
     .catch((error) => {
       const err = formatError(error);
@@ -343,7 +345,7 @@ const resendConfirmation = (req, res) =>
         confirmed_expires: addHours(new Date(), config.auth.tokens.confirmed.expireTime),
       });
     })
-    .then(() => res.json({ status: 'success', data: null }))
+    .then(() => res.json({ data: null }))
     .catch((error) => {
       const err = formatError(error);
 
