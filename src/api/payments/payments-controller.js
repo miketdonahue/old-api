@@ -19,7 +19,7 @@ const charge = (req, res) =>
     source: req.body.stripeToken,
     receipt_email: req.body.stripeEmail,
   })
-    .then(chargedCustomer => res.json({ status: 'success', data: { payment: chargedCustomer } }))
+    .then(chargedCustomer => res.json({ data: { payment: chargedCustomer } }))
     .catch((error) => {
       const err = formatError(error);
 

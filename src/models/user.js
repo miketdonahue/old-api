@@ -6,31 +6,35 @@ const addHours = require('date-fns/add_hours');
 const config = require('config');
 const knex = require('knex')(config.database);
 
-const User = {
-  name: 'user',
-  validations: {
-    firstName: {
-      format: {
-        pattern: /[A-Za-z]+/,
-        message: 'can contain only letters',
+class User {
+  constructor() {
+    this.name = 'user';
+    this.orm = knex;
+    this.bcrypt = bcrypt;
+    this.validations = {
+      firstName: {
+        format: {
+          pattern: /[A-Za-z]+/,
+          message: 'can contain only letters',
+        },
       },
-    },
-    lastName: {
-      format: {
-        pattern: /[A-Za-z]+/,
-        message: 'can contain only letters',
+      lastName: {
+        format: {
+          pattern: /[A-Za-z]+/,
+          message: 'can contain only letters',
+        },
       },
-    },
-    email: { email: true },
-    password: {
-      length: {
-        minimum: 6,
-        maximum: 40,
-        tooShort: 'must be greater than 6 characters',
-        tooLong: 'must be less than 40 characters',
+      email: { email: true },
+      password: {
+        length: {
+          minimum: 6,
+          maximum: 40,
+          tooShort: 'must be greater than 6 characters',
+          tooLong: 'must be less than 40 characters',
+        },
       },
-    },
-  },
+    };
+  }
 
   /**
    * Create ORM query connection to a given database model
@@ -38,9 +42,9 @@ const User = {
    * @param {String} model - Database table model to query; Default: 'users'
    * @return {Object} Query instance
    */
-  knex() {
-    return knex('users');
-  },
+  knex(model = 'users') {
+    return this.orm(model);
+  }
 
   /**
    * Create a new user
@@ -69,7 +73,7 @@ const User = {
         this.knex()
           .where({ uid })
           .first());
-  },
+  }
 
   /**
    * Hash the password
@@ -88,7 +92,7 @@ const User = {
           .where({ uid: instance.uid })
           .first())
       .then(updatedUser => Object.assign({}, instance, updatedUser));
-  },
+  }
 
   /**
    * Compare passwords
@@ -101,7 +105,7 @@ const User = {
     const user = await this.knex().where({ uid: instance.uid }).first().select('password');
 
     return bcrypt.compare(password, user.password).then(isMatch => ({ isMatch, user: instance }));
-  },
+  }
 
   /**
    * Hash a password
@@ -111,8 +115,9 @@ const User = {
    * @return {Object} The hashed password and the original user instance
    */
   hashPassword(instance, password) {
-    return bcrypt.hash(password, 10).then(hashedPassword => ({ hashedPassword, user: instance }));
-  },
+    return this.bcrypt.hash(password, 10)
+      .then(hashedPassword => ({ hashedPassword, user: instance }));
+  }
 
   /**
    * Validate user input
@@ -122,7 +127,7 @@ const User = {
    */
   validate(attributes) {
     return validator(this.name, attributes, this.validations);
-  },
+  }
 
   /**
    * Gets the Role ID for the given role
@@ -131,8 +136,8 @@ const User = {
    * @return {String} A role ID.
    */
   _getRole(role) {
-    return knex('roles').where('role', role).first().select('id');
-  },
-};
+    return this.knex('roles').where('role', role).first().select('id');
+  }
+}
 
 module.exports = User;

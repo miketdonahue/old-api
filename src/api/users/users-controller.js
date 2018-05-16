@@ -1,7 +1,9 @@
 const logger = require('local-logger');
 const formatError = require('local-error-handler');
 const utils = require('local-app-utils');
-const User = require('../../models/user');
+const UserModel = require('../../models/user');
+
+const User = new UserModel();
 
 const attrWhitelist = [
   'uid',
@@ -41,7 +43,7 @@ const list = (req, res) =>
 
       logger.info('USER-CTRL.LIST: Listing all users');
 
-      return res.json({ status: 'success', data: { users } });
+      return res.json({ data: { users } });
     })
     .catch((error) => {
       const err = formatError(error);
@@ -80,7 +82,7 @@ const show = (req, res) =>
 
       logger.info({ uid: user.uid }, 'USER-CTRL.SHOW: Retrieving user');
 
-      return res.json({ status: 'success', data: { user } });
+      return res.json({ data: { user } });
     })
     .catch((error) => {
       const err = formatError(error);
@@ -152,7 +154,7 @@ const update = (req, res) => {
       logger.info({ uid: updatedUser.uid }, 'USER-CTRL.UPDATE: Updated user');
 
       return res.json({
-        status: 'success',
+
         data: { user: utils.models.responseData(attrWhitelist, updatedUser) },
       });
     })
@@ -201,7 +203,7 @@ const destroy = (req, res) =>
       logger.info({ uid: deletedUser.uid }, 'USER-CTRL.DESTROY: Deleted user');
 
       return res.json({
-        status: 'success',
+
         data: null,
       });
     })
