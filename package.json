@@ -22,6 +22,11 @@
     "statements": 75,
     "functions": 75,
     "branches": 75,
+    "include": [
+      "src/api/**",
+      "src/middleware/**",
+      "!src/models/**"
+    ],
     "reporter": [
       "lcov",
       "text-summary"
