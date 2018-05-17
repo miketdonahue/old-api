@@ -15,7 +15,7 @@ const emailClient = require('local-mailer');
 const updateList = (req, res) => {
   logger.info({ listId: req.params.listId }, 'MAILER-CTRL.UPDATE-LIST: Retrieving mailing list');
 
-  emailClient.getList(req.params.listId)
+  return emailClient.getList(req.params.listId)
     .then((list) => {
       const listId = list.results.id;
       const recipientList = list.results.recipients;
