@@ -3,6 +3,7 @@ const db = require('../knexfile');
 module.exports = {
   server: {
     port: process.env.PORT || 8080,
+    docs: true,
   },
   auth: {
     jwt: {
