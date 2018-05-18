@@ -7,6 +7,7 @@ const bodyParser = require('body-parser');
 const cookieParser = require('cookie-parser');
 const helmet = require('helmet');
 const config = require('config');
+const { graphqlExpress, graphiqlExpress } = require('apollo-server-express');
 const formatError = require('local-error-handler');
 const logger = require('local-logger');
 const requestLogger = require('middleware/request-logger');
@@ -49,6 +50,13 @@ app.use(`${baseUrl}/auth`, authRoutes);
 app.use(`${baseUrl}/mailer`, mailerRoutes);
 app.use(`${baseUrl}/users`, verifyJwt(), userRoutes);
 app.use(`${baseUrl}/payments`, verifyJwt(), paymentRoutes);
+
+// GraphQL
+// app.use(`${baseUrl}/graphql`, graphqlExpress({ schema: myGraphQLSchema }));
+
+// if (config.server.docs) { // Only mount docs in Dev environment
+//   app.use(`${baseUrl}/docs`, graphiqlExpress({ endpointURL: `${baseUrl}/graphql` }));
+// }
 
 // Handle unknown routes (404s)
 app.use((req, res, next) => { // eslint-disable-line no-unused-vars

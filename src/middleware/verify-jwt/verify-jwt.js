@@ -46,7 +46,7 @@ function verifyJwt() {
 
       logger.info('VERIFY-JWT-MIDDLEWARE: Returning token');
 
-      res.locals.user = decoded;
+      req.user = decoded;
       return next();
     });
   };

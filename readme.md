@@ -1,12 +1,13 @@
 # Node API
 
-Built with Express.js, MySql, and Knex.js.
+Built with Express.js, GraphQL, MySql, and Knex.js.
 
 **Features:**
 
 - Security (CORS, CSRF, CSP)
 - Health Check
 - Auth'z & Auth'n (JWT)
+- GraphQL Layer
 - Thorough Error Handling
 - Response Consistency (JSend)
 - Flexible Config

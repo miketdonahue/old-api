@@ -15,17 +15,17 @@ function verifyAccess(action, resource) {
   return (req, res, next) => {
     if (config.auth.verifyAccess === false) return next();
 
-    const user = objectPath.get(res.locals, 'user');
+    const user = objectPath.get(req, 'user');
     const paramsUid = objectPath.get(req, 'params.uid');
 
     if (!user) {
       const appError = {
         name: 'AppError',
-        message: 'No user was found on res.locals',
+        message: 'No user was found at req.user',
         statusCode: '500',
         errors: [{
           statusCode: '500',
-          message: 'No user was found on res.locals',
+          message: 'No user was found at req.user',
           code: 'USER_NOT_FOUND',
           source: { path: 'data/user' },
         }],

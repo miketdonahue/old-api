@@ -14,9 +14,7 @@ describe('Unit Test: Verify JWT Middleware', () => {
 
     mock = {
       req: {},
-      res: {
-        locals: {},
-      },
+      res: sinon.spy(),
       jsonwebtoken: {
         verify: sinon.stub(),
       },
@@ -46,11 +44,12 @@ describe('Unit Test: Verify JWT Middleware', () => {
   });
 
   describe('Verify JWT', () => {
-    it('should verify the JWT token and attach the decoded user to res.locals', (done) => {
+    it('should verify the JWT token and attach the decoded user to req.user', (done) => {
       const req = {
         headers: {
           authorization: 'Bearer',
         },
+        user: {},
       };
 
       mock.jsonwebtoken.verify.yields(null, {
@@ -60,8 +59,8 @@ describe('Unit Test: Verify JWT Middleware', () => {
 
       verifyJwtMiddleware(req, mock.res, () => {
         expect(mock.jsonwebtoken.verify.calledOnce).to.be.true;
-        expect(mock.res.locals).to.have.all.keys('user');
-        expect(mock.res.locals.user).to.have.all.keys('uid', 'role');
+        expect(req).to.have.all.keys('headers', 'user');
+        expect(req.user).to.have.all.keys('uid', 'role');
         done();
       });
     });
