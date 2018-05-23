@@ -1,6 +1,7 @@
 const db = require('../knexfile');
 
 module.exports = {
+  database: db.development,
   server: {
     port: process.env.PORT || 8080,
     docs: true,
@@ -21,9 +22,14 @@ module.exports = {
       },
     },
   },
+  contentSecurityPolicy: {
+    defaultSrc: ["'self'"],
+  },
   mailer: {
     sendEmails: true,
     domain: 'makeitcount.cc',
   },
-  database: db.development,
+  graphql: {
+    debug: true,
+  },
 };

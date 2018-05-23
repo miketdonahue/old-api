@@ -1,11 +1,11 @@
 /* eslint-disable no-unused-expressions */
 
-const app = require('../../../app.js');
+const app = require('../../../../app.js');
 const { expect } = require('chai');
 const { exec } = require('child_process');
 const request = require('supertest')(app);
 
-const User = require('../../../models/user');
+const User = require('../../../../models/user');
 
 describe.skip('Black Box Test: Users', () => {
   beforeEach((done) => {

@@ -74,11 +74,11 @@ describe('Unit Test: Verify Access Middleware', () => {
       expect(mock.nextSpy.calledOnce).to.be.true;
       expect(mock.nextSpy.calledWith({
         name: 'AppError',
-        message: 'No user was found on res.locals',
+        message: 'No user was found at req.user',
         statusCode: '500',
         errors: [{
           statusCode: '500',
-          message: 'No user was found on res.locals',
+          message: 'No user was found at req.user',
           code: 'USER_NOT_FOUND',
           source: { path: 'data/user' },
         }],
@@ -90,6 +90,7 @@ describe('Unit Test: Verify Access Middleware', () => {
         params: {
           uid: '123abc',
         },
+        user: {},
       };
 
       mock.getPermissions.returns({ granted: false });

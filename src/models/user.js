@@ -14,13 +14,13 @@ class User {
     this.validations = {
       firstName: {
         format: {
-          pattern: /[A-Za-z]+/,
+          pattern: /[A-Za-z'-.]+/,
           message: 'can contain only letters',
         },
       },
       lastName: {
         format: {
-          pattern: /[A-Za-z]+/,
+          pattern: /[A-Za-z'-.]+/,
           message: 'can contain only letters',
         },
       },
