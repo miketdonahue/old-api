@@ -5,4 +5,7 @@ module.exports = {
   server: {
     docs: false,
   },
+  graphql: {
+    debug: false,
+  },
 };

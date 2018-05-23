@@ -7,22 +7,22 @@ const bodyParser = require('body-parser');
 const cookieParser = require('cookie-parser');
 const helmet = require('helmet');
 const config = require('config');
-const { graphqlExpress, graphiqlExpress } = require('apollo-server-express');
 const formatError = require('local-error-handler');
+const { graphqlSchema } = require('./api/graphql/graphql-schema');
+const { graphqlExpress, graphiqlExpress } = require('apollo-server-express');
 const logger = require('local-logger');
 const requestLogger = require('middleware/request-logger');
 const healthCheck = require('express-healthcheck');
 
 const app = express();
 const baseUrl = '/api';
+const graphqlUrl = `${baseUrl}/graphql`;
 
 // Security Headers
 app.use(helmet());
 app.use(helmet.referrerPolicy({ policy: 'same-origin' }));
 app.use(helmet.contentSecurityPolicy({
-  directives: {
-    defaultSrc: ["'self'"],
-  },
+  directives: config.contentSecurityPolicy,
 }));
 
 // Global middleware
@@ -43,20 +43,24 @@ const verifyJwt = require('middleware/verify-jwt');
 // Routes
 const authRoutes = require('./api/auth/auth-routes');
 const mailerRoutes = require('./api/mailer/mailer-routes');
-const userRoutes = require('./api/users/users-routes');
 const paymentRoutes = require('./api/payments/payments-routes');
 
 app.use(`${baseUrl}/auth`, authRoutes);
 app.use(`${baseUrl}/mailer`, mailerRoutes);
-app.use(`${baseUrl}/users`, verifyJwt(), userRoutes);
 app.use(`${baseUrl}/payments`, verifyJwt(), paymentRoutes);
 
 // GraphQL
-// app.use(`${baseUrl}/graphql`, graphqlExpress({ schema: myGraphQLSchema }));
+app.use(graphqlUrl, verifyJwt(), graphqlExpress(req => ({
+  schema: graphqlSchema,
+  context: {
+    req,
+    user: req.user,
+  },
+})));
 
-// if (config.server.docs) { // Only mount docs in Dev environment
-//   app.use(`${baseUrl}/docs`, graphiqlExpress({ endpointURL: `${baseUrl}/graphql` }));
-// }
+if (config.server.docs) {
+  app.use(`${baseUrl}/docs`, graphiqlExpress({ endpointURL: graphqlUrl }));
+}
 
 // Handle unknown routes (404s)
 app.use((req, res, next) => { // eslint-disable-line no-unused-vars

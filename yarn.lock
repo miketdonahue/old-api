@@ -982,6 +982,10 @@ deep-eql@^3.0.0:
   dependencies:
     type-detect "^4.0.0"
 
+deep-equal@^1.0.1:
+  version "1.0.1"
+  resolved "https://registry.yarnpkg.com/deep-equal/-/deep-equal-1.0.1.tgz#f5d260292b660e084eff4cdbc9f08ad3247448b5"
+
 deep-extend@~0.4.0:
   version "0.4.2"
   resolved "https://registry.yarnpkg.com/deep-extend/-/deep-extend-0.4.2.tgz#48b699c27e334bf89f10892be432f6e4c7d34a7f"
@@ -1832,6 +1836,13 @@ graphql-extensions@^0.0.x, graphql-extensions@~0.0.9:
   dependencies:
     core-js "^2.5.3"
     source-map-support "^0.5.1"
+
+graphql-resolvers@^0.2.2:
+  version "0.2.2"
+  resolved "https://registry.yarnpkg.com/graphql-resolvers/-/graphql-resolvers-0.2.2.tgz#911310367cf16a70b97b73da9f19d9598137851f"
+  dependencies:
+    deep-equal "^1.0.1"
+    object-path "^0.11.4"
 
 graphql-tools@^3.0.1:
   version "3.0.1"
