@@ -239,17 +239,17 @@ describe('Black Box Test: Auth', () => {
         });
     });
 
-    it('should throw an error if user not found', (done) => {
+    it.only('should throw an error if user not found', (done) => {
       request
         .post('/api/auth/login')
         .send({
-          email: null,
+          email: '',
           password: 'password',
         })
         .expect(401)
         .end((err, response) => {
           const body = response.body;
-
+          console.log('XXXXX', body);
           expect(body).to.have.all.keys('errors');
           expect(body.errors).to.be.an('array');
           expect(body.errors[0]).to.have.all.keys('statusCode', 'message', 'code', 'source');

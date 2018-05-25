@@ -13,6 +13,8 @@ const { graphqlExpress, graphiqlExpress } = require('apollo-server-express');
 const logger = require('local-logger');
 const requestLogger = require('middleware/request-logger');
 const healthCheck = require('express-healthcheck');
+const passport = require('passport');
+const { local } = require('middleware/auth-strategies');
 
 const app = express();
 const baseUrl = '/api';
@@ -28,6 +30,7 @@ app.use(helmet.contentSecurityPolicy({
 // Global middleware
 app.use('/public', express.static('public'));
 app.use('/health-check', healthCheck());
+app.use(passport.initialize());
 app.use(requestLogger());
 app.use(cookieParser());
 app.use(bodyParser.urlencoded({ extended: true }));
@@ -36,6 +39,9 @@ app.use(cors({
   origin: 'http://localhost:8080',
   optionsSuccessStatus: 200,
 }));
+
+// Passport.js authentication middleware
+passport.use('local', local);
 
 // Route middleware
 const verifyJwt = require('middleware/verify-jwt');

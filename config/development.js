@@ -3,7 +3,7 @@ const db = require('../knexfile');
 module.exports = {
   database: db.development,
   auth: {
-    jwt: false,
+    // jwt: true,
     verifyAccess: false,
   },
   contentSecurityPolicy: {

@@ -1,11 +1,11 @@
 const jwt = require('jsonwebtoken');
+const passport = require('passport');
 const logger = require('local-logger');
 const config = require('config');
 const md5 = require('md5');
 const addHours = require('date-fns/add_hours');
-const ApiError = require('local-errors');
+const { ApiError, authErrors } = require('local-errors');
 const formatError = require('local-error-handler');
-const authErrors = require('./auth-errors');
 const emailClient = require('./auth-emails');
 const UserModel = require('../../models/user');
 
@@ -125,69 +125,39 @@ const confirmAccount = (req, res) => {
  * @function
  * @param {Object} req - HTTP request
  * @param {Object} res - HTTP response
+ * @param {Object} next - Middleware next
  * @returns {Object} - JSON response {status, data}
  */
-const login = (req, res) =>
-  User.knex()
-    .innerJoin('roles', 'users.role_id', 'roles.id')
-    .where({ email: req.body.email })
-    .first()
-    .then((obj) => {
-      const user = obj;
+const login = (req, res, next) =>
+  passport.authenticate(['local'], (err, user) => {
+    if (err) return next(err);
 
-      if (!user || !user.confirmed) {
-        throw new ApiError(authErrors.INVALID_USER(user));
-      }
-
-      logger.info({ uid: user.uid }, 'AUTH-CTRL.LOGIN: Found user');
-
-      return User.comparePassword(user, req.body.password);
+    logger.info({ uid: user.uid }, 'AUTH-CTRL.LOGIN: Updating user attributes');
+    console.log('USERRRR', user);
+    return User.update(user, {
+      last_visit: new Date(),
+      ip: req.ip,
     })
-    .then(({ isMatch, user }) => {
-      const userObj = user;
+      .then((updatedUser) => {
+        jwt.sign({
+          uid: updatedUser.uid,
+          role: updatedUser.role, // TODO: is role ok here, or should user be looked up in DB?
+        },
+        config.auth.jwt.secret,
+        { expiresIn: config.auth.jwt.expireTime }, (e, token) => {
+          if (e) throw (e);
 
-      if (!isMatch) {
-        const appError = {
-          name: 'AppError',
-          message: 'Invalid credentials',
-          statusCode: '401',
-          errors: [{
-            statusCode: '401',
-            message: 'The user credentials are invalid',
-            code: 'INVALID_CREDENTIALS',
-            source: { path: 'data/user' },
-          }],
-        };
+          logger.info({ uid: updatedUser.uid }, 'AUTH-CTRL.LOGIN: Logging in user');
+          return res.json({ data: { token } });
+        });
+      })
+      .catch((error) => {
+        const e = formatError(error);
 
-        throw new ApiError(appError);
-      }
-
-      logger.info({ uid: userObj.uid }, 'AUTH-CTRL.LOGIN: Updating user attributes');
-
-      return User.update(userObj, {
-        last_visit: new Date(),
-        ip: req.ip,
+        logger[e.level]({ err: error, response: e }, `AUTH-CTRL.LOGIN: ${e.message}`);
+        return res.status(e.statusCode).json({ errors: e.jsonResponse });
       });
-    })
-    .then((updatedUser) => {
-      jwt.sign({
-        uid: updatedUser.uid,
-        role: updatedUser.role,
-      },
-      config.auth.jwt.secret,
-      { expiresIn: config.auth.jwt.expireTime }, (e, token) => {
-        if (e) throw (e);
-
-        logger.info({ uid: updatedUser.uid }, 'AUTH-CTRL.LOGIN: Logging in user');
-        return res.json({ data: { token } });
-      });
-    })
-    .catch((error) => {
-      const err = formatError(error);
-
-      logger[err.level]({ err: error, response: err }, `AUTH-CTRL.LOGIN: ${err.message}`);
-      return res.status(err.statusCode).json({ errors: err.jsonResponse });
-    });
+  })(req, res, next);
 
 /**
  * User forgot password flow
