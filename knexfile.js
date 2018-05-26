@@ -9,6 +9,7 @@ module.exports = {
       password: process.env.DB_PASSWORD,
       database: 'node_api_development',
     },
+    useNullAsDefault: true,
     migrations: {
       tableName: 'migrations',
       directory: path.join(process.cwd(), '/migrations'),
@@ -26,6 +27,7 @@ module.exports = {
       password: process.env.DB_PASSWORD,
       database: 'node_api_test',
     },
+    useNullAsDefault: true,
     migrations: {
       tableName: 'migrations',
       directory: path.join(process.cwd(), '/migrations'),
@@ -43,6 +45,7 @@ module.exports = {
       password: process.env.DB_PASSWORD,
       database: 'node_api_production',
     },
+    useNullAsDefault: true,
     debug: false,
   },
 };

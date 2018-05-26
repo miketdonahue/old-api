@@ -2,7 +2,7 @@
 
 const { expect } = require('chai');
 const sinon = require('sinon');
-const addHours = require('date-fns/add_hours');
+const addMinutes = require('date-fns/add_minutes');
 const subtractHours = require('date-fns/sub_hours');
 const proxyquire = require('proxyquire').noCallThru();
 const UserModel = require('../../../models/user');
@@ -153,7 +153,7 @@ describe('Unit Test: Auth', () => {
 
       const user = {
         uid: '123abc',
-        confirmed_expires: addHours(new Date(), 1),
+        confirmed_expires: addMinutes(new Date(), 1),
       };
 
       updateUser.resolves(user);
@@ -611,7 +611,7 @@ describe('Unit Test: Auth', () => {
 
       const user = {
         uid: '123abc',
-        reset_password_expires: addHours(new Date(), 1),
+        reset_password_expires: addMinutes(new Date(), 1),
       };
 
       comparePassword.resolves({ isMatch: false, user });
@@ -735,7 +735,7 @@ describe('Unit Test: Auth', () => {
 
       const user = {
         uid: '123abc',
-        reset_password_expires: addHours(new Date(), 1),
+        reset_password_expires: addMinutes(new Date(), 1),
       };
 
       comparePassword.resolves({ isMatch: true, user });

@@ -17,11 +17,15 @@ exports.up = knex =>
     t.string('blurb', 475).nullable();
     t.dateTime('last_visit').nullable();
     t.string('ip').nullable();
+    t.integer('login_attempts').defaultTo(0).notNull();
     t.boolean('confirmed').notNull();
     t.string('confirmed_token').nullable();
     t.dateTime('confirmed_expires').nullable();
     t.string('reset_password_token').nullable();
     t.dateTime('reset_password_expires').nullable();
+    t.boolean('account_locked').nullable();
+    t.string('unlock_account_token').nullable();
+    t.dateTime('unlock_account_expires').nullable();
     t.timestamps(true, true);
     t.dateTime('deleted_at').nullable();
 

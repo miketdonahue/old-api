@@ -58,7 +58,7 @@ describe('Black Box Test: Verify-Access', () => {
                       .expect(200)
                       .end((e, res) => {
                         const resBody = res.body;
-                        console.log('xxxx', resBody.errors[0].meta);
+
                         expect(resBody.data).to.have.all.keys('users');
                         expect(resBody.data.users).to.be.an('array');
                         expect(resBody.data.users).to.have.lengthOf(5);
