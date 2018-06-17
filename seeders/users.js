@@ -1,6 +1,6 @@
 const md5 = require('md5');
 const shortId = require('shortid');
-const addHours = require('date-fns/add_hours');
+const addMinutes = require('date-fns/add_minutes');
 const bcrypt = require('bcrypt');
 const Chance = require('chance');
 
@@ -39,7 +39,7 @@ exports.seed = (knex, Promise) => {
           blurb: chance.paragraph({ sentences: 3 }),
           confirmed: false,
           confirmed_token: md5(`token${Math.random()}`),
-          confirmed_expires: addHours(new Date(), 2),
+          confirmed_expires: addMinutes(new Date(), 2),
         };
 
         users.push(

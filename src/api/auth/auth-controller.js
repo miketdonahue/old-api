@@ -2,12 +2,13 @@ const jwt = require('jsonwebtoken');
 const logger = require('local-logger');
 const config = require('config');
 const md5 = require('md5');
-const addHours = require('date-fns/add_hours');
+const addMinutes = require('date-fns/add_minutes');
 const ApiError = require('local-errors');
 const formatError = require('local-error-handler');
 const authErrors = require('./auth-errors');
-const emailClient = require('./auth-emails');
-const UserModel = require('../../models/user');
+const emailOpts = require('./auth-email-options');
+const mailer = require('local-mailer');
+const { UserModel } = require('local-models');
 
 const User = new UserModel();
 
@@ -25,11 +26,6 @@ const signup = (req, res) =>
     .where({ email: req.body.email })
     .first()
     .then((user) => {
-      if (!user) User.validate(req.body);
-
-      return user;
-    })
-    .then((user) => {
       if (!user) {
         logger.info('AUTH-CTRL.SIGNUP: Creating new user');
 
@@ -46,24 +42,13 @@ const signup = (req, res) =>
     })
     .then((user) => {
       if (user) {
-        logger.info({ uid: user.uid }, 'AUTH-CTRL.SIGNUP: User created');
+        const type = config.auth.confirmable ? 'CONFIRMATION_EMAIL' : 'WELCOME_EMAIL';
 
-        return emailClient.sendConfirmMail(user);
+        logger.info({ uid: user.uid }, 'AUTH-CTRL.SIGNUP: User created');
+        return mailer.send(user, emailOpts[type]);
       }
 
-      const appError = {
-        name: 'AppError',
-        message: 'Duplicate email address',
-        statusCode: '400',
-        errors: [{
-          statusCode: '400',
-          message: 'The email address already exists',
-          code: 'DUPLICATE_EMAIL',
-          source: { path: 'data/user/email' },
-        }],
-      };
-
-      throw new ApiError(appError);
+      throw new ApiError(authErrors.DUPLICATE_EMAIL);
     })
     .then(({ user }) =>
       res.status(201).json({ data: { user: { uid: user.uid } } }),
@@ -95,7 +80,7 @@ const confirmAccount = (req, res) => {
       const tokenExpired = user && user.confirmed_expires < new Date();
 
       if (!user || tokenExpired) {
-        throw new ApiError(authErrors.INVALID_TOKEN(user));
+        throw new ApiError(authErrors.INVALID_TOKEN(user, 'confirm account'));
       }
 
       logger.info({ uid: user.uid }, 'AUTH-CTRL.CONFIRM-ACCOUNT: Confirming user\'s account');
@@ -106,9 +91,10 @@ const confirmAccount = (req, res) => {
         confirmed_expires: null,
       });
     })
-    .then((updatedUser) => {
-      logger.info({ uid: updatedUser.uid }, 'AUTH-CTRL.CONFIRM-ACCOUNT: Account was confirmed');
-      return res.json({ data: { user: { uid: updatedUser.uid } } });
+    .then(user => mailer.send(user, emailOpts.WELCOME_EMAIL))
+    .then(({ user }) => {
+      logger.info({ uid: user.uid }, 'AUTH-CTRL.CONFIRM-ACCOUNT: Account was confirmed');
+      return res.json({ data: { user: { uid: user.uid } } });
     })
     .catch((error) => {
       const err = formatError(error);
@@ -121,7 +107,7 @@ const confirmAccount = (req, res) => {
 /**
  * User login flow
  *
- * @description Ensures user is confirmed; Checks credentials; Updates attributes; Logs in the user
+ * @description Checks credentials; Updates attributes; Logs in the user
  * @function
  * @param {Object} req - HTTP request
  * @param {Object} res - HTTP response
@@ -132,39 +118,61 @@ const login = (req, res) =>
     .innerJoin('roles', 'users.role_id', 'roles.id')
     .where({ email: req.body.email })
     .first()
+    .then((user) => {
+      const notConfirmed = config.auth.confirmable ? (user && !user.confirmed) : false;
+
+      if (user && user.account_locked) throw new ApiError(authErrors.ACCOUNT_LOCKED);
+      if (!user || notConfirmed) throw new ApiError(authErrors.INVALID_USER_OR_NOT_CONFIRMED(user));
+
+      return user;
+    })
     .then((obj) => {
       const user = obj;
 
-      if (!user || !user.confirmed) {
-        throw new ApiError(authErrors.INVALID_USER(user));
-      }
-
       logger.info({ uid: user.uid }, 'AUTH-CTRL.LOGIN: Found user');
-
       return User.comparePassword(user, req.body.password);
     })
     .then(({ isMatch, user }) => {
-      const userObj = user;
-
       if (!isMatch) {
-        const appError = {
-          name: 'AppError',
-          message: 'Invalid credentials',
-          statusCode: '401',
-          errors: [{
-            statusCode: '401',
-            message: 'The user credentials are invalid',
-            code: 'INVALID_CREDENTIALS',
-            source: { path: 'data/user' },
-          }],
-        };
-
-        throw new ApiError(appError);
+        return User.knex()
+          .where({ uid: user.uid })
+          .increment('login_attempts', 1)
+          .then(() =>
+            User.knex()
+              .where({ uid: user.uid })
+              .first()
+              .then(updatedUser =>
+                User.checkForLockedAccount(updatedUser)))
+          .then(({ locked, userObj }) => ({
+            isMatch,
+            user: userObj,
+            accountLocked: locked,
+          }));
       }
 
-      logger.info({ uid: userObj.uid }, 'AUTH-CTRL.LOGIN: Updating user attributes');
+      return {
+        isMatch,
+        accountLocked: false,
+        user,
+      };
+    })
+    .then(({ isMatch, accountLocked, user }) => {
+      if (accountLocked) {
+        return mailer.send(user, emailOpts.UNLOCK_ACCOUNT_EMAIL)
+          .then(() => { throw new ApiError(authErrors.ACCOUNT_LOCKED); });
+      }
 
-      return User.update(userObj, {
+      return { isMatch, user };
+    })
+    .then(({ isMatch, user }) => {
+      if (!isMatch) {
+        throw new ApiError(authErrors.INVALID_PASSWORD);
+      }
+
+      logger.info({ uid: user.uid }, 'AUTH-CTRL.LOGIN: Updating user attributes');
+
+      return User.update(user, {
+        login_attempts: 0,
         last_visit: new Date(),
         ip: req.ip,
       });
@@ -204,9 +212,10 @@ const forgotPassword = (req, res) =>
     .first()
     .then((obj) => {
       const user = obj;
+      const notConfirmed = config.auth.confirmable ? !user.confirmed : false;
 
-      if (!user || !user.confirmed) {
-        throw new ApiError(authErrors.INVALID_USER(user));
+      if (!user || notConfirmed) {
+        throw new ApiError(authErrors.INVALID_USER_OR_NOT_CONFIRMED(user));
       }
 
       logger.info({ uid: user.uid }, 'AUTH-CTRL.FORGOT-PASSWORD: Found user');
@@ -219,10 +228,10 @@ const forgotPassword = (req, res) =>
 
       return User.update(user, {
         reset_password_token: md5(user.password + Math.random()),
-        reset_password_expires: addHours(new Date(), config.auth.tokens.passwordReset.expireTime),
+        reset_password_expires: addMinutes(new Date(), config.auth.tokens.passwordReset.expireTime),
       });
     })
-    .then(updatedUser => emailClient.sendResetPasswordMail(updatedUser))
+    .then(updatedUser => mailer.send(updatedUser, emailOpts.RESET_PASSWORD_EMAIL))
     .then(({ user }) => res.json({ data: { user: { uid: user.uid } } }))
     .catch((error) => {
       const err = formatError(error);
@@ -247,16 +256,11 @@ const resetPassword = (req, res) => {
     .where({ reset_password_token: resetPasswordToken })
     .first()
     .then((obj) => {
-      User.validate(req.body);
-
-      return obj;
-    })
-    .then((obj) => {
       const user = obj;
       const tokenExpired = user && user.reset_password_expires < new Date();
 
       if (!user || tokenExpired) {
-        throw new ApiError(authErrors.INVALID_TOKEN(user));
+        throw new ApiError(authErrors.INVALID_TOKEN(user, 'reset password'));
       }
 
       return user;
@@ -265,7 +269,6 @@ const resetPassword = (req, res) => {
       const user = obj;
 
       logger.info({ uid: user.uid }, 'AUTH-CTRL.RESET-PASSWORD: Updating user attributes');
-
       return User.comparePassword(user, req.body.password);
     })
     .then(({ isMatch, user }) => {
@@ -281,7 +284,7 @@ const resetPassword = (req, res) => {
           password: hashedPassword,
           reset_password_token: null,
           reset_password_expires: null,
-        });
+        }, ['reset_password_token', 'reset_password_expires']);
       }
 
       return User.update(user, {
@@ -305,9 +308,53 @@ const resetPassword = (req, res) => {
 };
 
 /**
+ * User unlock account flow
+ *
+ * @description Ensure token not expired; unlock the account
+ * @function
+ * @param {Object} req - HTTP request
+ * @param {Object} res - HTTP response
+ * @returns {Object} - JSON response {status, data}
+ */
+const unlockAccount = (req, res) => {
+  const { unlockAccountToken } = req.query;
+
+  return User.knex()
+    .where({ unlock_account_token: unlockAccountToken })
+    .first()
+    .then((obj) => {
+      const user = obj;
+      const tokenExpired = user && user.unlock_account_expires < new Date();
+
+      if (!user || tokenExpired) {
+        throw new ApiError(authErrors.INVALID_TOKEN(user, 'unlock account'));
+      }
+
+      logger.info({ uid: user.uid }, 'AUTH-CTRL.UNLOCK-ACCOUNT: Unlocking user\'s account');
+
+      return User.update(user, {
+        account_locked: false,
+        unlock_account_token: null,
+        unlock_account_expires: null,
+        login_attempts: 0,
+      });
+    })
+    .then((updatedUser) => {
+      logger.info({ uid: updatedUser.uid }, 'AUTH-CTRL.UNLOCK-ACCOUNT: Account was unlocked');
+      return res.json({ data: { user: { uid: updatedUser.uid } } });
+    })
+    .catch((error) => {
+      const err = formatError(error);
+
+      logger[err.level]({ err: error, response: err }, `AUTH-CTRL.UNLOCK-ACCOUNT: ${err.message}`);
+      return res.status(err.statusCode).json({ errors: err.jsonResponse });
+    });
+};
+
+/**
  * Resend confirmation email
  *
- * @description Finds user based on uid query param; Resends confirmation email
+ * @description Finds user based on email; Resends confirmation email
  * @function
  * @param {Object} req - HTTP request
  * @param {Object} res - HTTP response
@@ -319,31 +366,23 @@ const resendConfirmation = (req, res) =>
     .first()
     .then((user) => {
       if (!user || user.confirmed) {
-        const appError = {
-          name: 'AppError',
-          message: 'Invalid user credentials or user already confirmed',
-          statusCode: '401',
-          errors: [{
-            statusCode: '401',
-            message: `The user ${!user ? 'credentials are invalid' : 'is already confirmed'}`,
-            code: (!user) ? 'INVALID_CREDENTIALS' : 'USER_ALREADY_CONFIRMED',
-            source: { path: 'data/user' },
-          }],
-        };
-
-        throw new ApiError(appError);
+        throw new ApiError(authErrors.INVALID_USER_OR_CONFIRMED(user));
       }
 
-      return emailClient.sendConfirmMail(user);
-    })
-    .then(({ user }) => {
-      const userObj = user;
+      logger.info({ uid: user.uid }, 'AUTH-CTRL.RECONFIRM: Creating confirm account token');
 
-      logger.info({ uid: user.uid }, 'AUTH-CTRL.RECONFIRM: Resent email for confirmation');
-
-      return User.update(userObj, {
-        confirmed_expires: addHours(new Date(), config.auth.tokens.confirmed.expireTime),
+      return User.update(user, {
+        confirmed_token: md5(user.email + Math.random()),
+        confirmed_expires: addMinutes(new Date(), config.auth.tokens.confirmed.expireTime),
       });
+    })
+    .then((user) => {
+      if (!user || user.confirmed) {
+        throw new ApiError(authErrors.INVALID_USER_OR_CONFIRMED(user));
+      }
+
+      logger.info({ uid: user.uid }, 'AUTH-CTRL.RECONFIRM: Resending email for confirmation');
+      return mailer.send(user, emailOpts.CONFIRMATION_EMAIL);
     })
     .then(() => res.json({ data: null }))
     .catch((error) => {
@@ -353,11 +392,50 @@ const resendConfirmation = (req, res) =>
       return res.status(err.statusCode).json({ errors: err.jsonResponse });
     });
 
+/**
+ * Resend unlock account email
+ *
+ * @description Finds user based on email; Resends confirmation email
+ * @function
+ * @param {Object} req - HTTP request
+ * @param {Object} res - HTTP response
+ * @returns {Object} - JSON response {status, data}
+ */
+const resendUnlockAccount = (req, res) =>
+  User.knex()
+    .where({ email: req.body.email })
+    .first()
+    .then((user) => {
+      if (!user || !user.account_locked) {
+        throw new ApiError(authErrors.INVALID_USER_OR_ACCOUNT_NOT_LOCKED(user));
+      }
+
+      logger.info({ uid: user.uid }, 'AUTH-CTRL.REUNLOCK: Creating unlock account token');
+
+      return User.update(user, {
+        unlock_account_token: md5(user.email + Math.random()),
+        unlock_account_expires: addMinutes(new Date(), config.auth.tokens.unlockAccount.expireTime),
+      });
+    })
+    .then((user) => {
+      logger.info({ uid: user.uid }, 'AUTH-CTRL.REUNLOCK: Resending email to unlock account');
+      return mailer.send(user, emailOpts.UNLOCK_ACCOUNT_EMAIL);
+    })
+    .then(() => res.json({ data: null }))
+    .catch((error) => {
+      const err = formatError(error);
+
+      logger[err.level]({ err: error, response: err }, `AUTH-CTRL.REUNLOCK: ${err.message}`);
+      return res.status(err.statusCode).json({ errors: err.jsonResponse });
+    });
+
 module.exports = {
   signup,
   confirmAccount,
   login,
   forgotPassword,
   resetPassword,
+  unlockAccount,
   resendConfirmation,
+  resendUnlockAccount,
 };

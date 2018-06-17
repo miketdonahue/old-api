@@ -13,12 +13,19 @@ module.exports = {
     },
     verifyAccess: true,
     confirmable: true,
+    lockable: {
+      maxAttempts: 5,
+    },
     tokens: {
+      // Expire time is in minutes
       passwordReset: {
-        expireTime: 2, // time in hours
+        expireTime: 15,
       },
       confirmed: {
-        expireTime: 2, // time in hours
+        expireTime: 360, // 6 hrs
+      },
+      unlockAccount: {
+        expireTime: 15,
       },
     },
   },

@@ -3,7 +3,7 @@
 const app = require('../../../app.js');
 const { expect } = require('chai');
 const shortId = require('shortid');
-const addHours = require('date-fns/add_hours');
+const addMinutes = require('date-fns/add_minutes');
 const subtractHours = require('date-fns/sub_hours');
 const isWithinRange = require('date-fns/is_within_range');
 const isBefore = require('date-fns/is_before');
@@ -61,7 +61,7 @@ describe('Black Box Test: Auth', () => {
               expect(user.confirmed_token).is.not.null;
               expect(user.confirmed_expires).is.not.null;
               expect(isBefore(new Date(user.confirmed_expires),
-                addHours(new Date(), 3))).to.be.true;
+                addMinutes(new Date(), 3))).to.be.true;
 
               done(err);
             });
@@ -222,7 +222,7 @@ describe('Black Box Test: Auth', () => {
                 .end((e, res) => {
                   const resBody = res.body;
                   const lowTime = subtractHours(new Date(), 1);
-                  const highTime = addHours(new Date(), 1);
+                  const highTime = addMinutes(new Date(), 1);
 
                   expect(resBody.data).to.have.all.keys('token');
 
@@ -398,7 +398,7 @@ describe('Black Box Test: Auth', () => {
                       expect(selectedUser.reset_password_token).is.not.null;
                       expect(selectedUser.reset_password_expires).is.not.null;
                       expect(isBefore(new Date(selectedUser.reset_password_expires),
-                        addHours(new Date(), 3))).to.be.true;
+                        addMinutes(new Date(), 3))).to.be.true;
 
                       done(e);
                     });
