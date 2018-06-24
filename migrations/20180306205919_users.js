@@ -18,6 +18,7 @@ exports.up = knex =>
     t.dateTime('last_visit').nullable();
     t.string('ip').nullable();
     t.integer('login_attempts').defaultTo(0).notNull();
+    t.integer('security_question_attempts').defaultTo(0).notNull();
     t.boolean('confirmed').notNull();
     t.string('confirmed_token').nullable();
     t.dateTime('confirmed_expires').nullable();
@@ -29,7 +30,7 @@ exports.up = knex =>
     t.timestamps(true, true);
     t.dateTime('deleted_at').nullable();
 
-    t.foreign('role_id').references('Roles.id').onDelete('CASCADE');
+    t.foreign('role_id').references('id').inTable('roles').onDelete('CASCADE');
     t.index(['uid', 'email', 'zip_code', 'title']);
   });
 

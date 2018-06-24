@@ -11,9 +11,12 @@
     "test:bb": "NODE_ENV=test mocha 'src/**/*.test.bb.js' --timeout 30000 --exit",
     "test:watch": "NODE_ENV=test nodemon --exec \"mocha 'src/**/*.test.js'\"",
     "lint": "eslint 'config/*.js' 'migrations/*.js' 'seeders/*.js' 'src/**/*.js'",
-    "migrate": "knex migrate:latest",
-    "migrate:undo": "knex migrate:rollback",
-    "seed": "knex seed:run",
+    "migrate:dev": "NODE_ENV=development knex migrate:latest",
+    "migrate:undo:dev": "NODE_ENV=development knex migrate:rollback",
+    "seed:dev": "NODE_ENV=development knex seed:run",
+    "migrate": "NODE_ENV=production knex migrate:latest",
+    "migrate:undo": "NODE_ENV=production knex migrate:rollback",
+    "seed": "NODE_ENV=production knex seed:run",
     "mysql:restart": "mysql.server restart"
   },
   "nyc": {
