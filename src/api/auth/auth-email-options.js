@@ -29,7 +29,7 @@ const RESET_PASSWORD_EMAIL = {
   templateId: 'reset-password',
   substitutionData: user => ({
     first_name: user.first_name,
-    reset_password_token: user.reset_password_token,
+    reset_password_code: user.reset_password_code,
   }),
 };
 
@@ -41,7 +41,7 @@ const UNLOCK_ACCOUNT_EMAIL = {
   templateId: 'unlock-account',
   substitutionData: user => ({
     first_name: user.first_name,
-    unlock_account_token: user.unlock_account_token,
+    unlock_account_code: user.unlock_account_code,
   }),
 };
 

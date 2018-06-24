@@ -1,5 +1,5 @@
-const md5 = require('md5');
 const shortId = require('shortid');
+const md5 = require('md5');
 const addMinutes = require('date-fns/add_minutes');
 const argon2 = require('argon2');
 const Chance = require('chance');

@@ -22,10 +22,10 @@ exports.up = knex =>
     t.boolean('confirmed').notNull();
     t.string('confirmed_token').nullable();
     t.dateTime('confirmed_expires').nullable();
-    t.string('reset_password_token').nullable();
+    t.string('reset_password_code').nullable();
     t.dateTime('reset_password_expires').nullable();
     t.boolean('account_locked').nullable();
-    t.string('unlock_account_token').nullable();
+    t.string('unlock_account_code').nullable();
     t.dateTime('unlock_account_expires').nullable();
     t.timestamps(true, true);
     t.dateTime('deleted_at').nullable();

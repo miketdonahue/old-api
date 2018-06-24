@@ -78,13 +78,13 @@ describe('Unit Test: Auth Emails', () => {
         templateId: 'reset-password',
         substitutionData: {
           first_name: 'Mike',
-          reset_password_token: '123xyz',
+          reset_password_code: '123xyz',
         },
       };
 
       const user = {
         first_name: 'Mike',
-        reset_password_token: '123xyz',
+        reset_password_code: '123xyz',
       };
 
       authEmails.sendResetPasswordMail(user);
