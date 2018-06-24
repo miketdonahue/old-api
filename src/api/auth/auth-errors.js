@@ -109,6 +109,25 @@ const INVALID_USER_OR_ACCOUNT_NOT_LOCKED = user => ({
 });
 
 /**
+ * Invalid Security Questions
+ *
+ * @description Given a set of security question answers, one or more are invalid
+ * @function
+ * @param {Object} user - User returned from database
+ */
+const INVALID_SECURITY_QUESTION = {
+  name: 'AppError',
+  message: 'Invalid security question',
+  statusCode: '400',
+  errors: [{
+    statusCode: '400',
+    message: 'One or more security question answers are invalid',
+    code: 'INVALID_SECURITY_QUESTION',
+    source: { path: 'data/user' },
+  }],
+};
+
+/**
  * Account Locked
  *
  * @description The account has been locked due to too many failed login attempts
@@ -132,5 +151,6 @@ module.exports = {
   INVALID_USER_OR_NOT_CONFIRMED,
   INVALID_USER_OR_CONFIRMED,
   INVALID_USER_OR_ACCOUNT_NOT_LOCKED,
+  INVALID_SECURITY_QUESTION,
   ACCOUNT_LOCKED,
 };

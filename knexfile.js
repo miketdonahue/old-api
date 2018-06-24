@@ -46,6 +46,13 @@ module.exports = {
       database: 'node_api_production',
     },
     useNullAsDefault: true,
+    migrations: {
+      tableName: 'migrations',
+      directory: path.join(process.cwd(), '/migrations'),
+    },
+    seeds: {
+      directory: path.join(process.cwd(), '/seeders'),
+    },
     debug: false,
   },
 };

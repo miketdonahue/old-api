@@ -8,6 +8,7 @@ const formatError = require('local-error-handler');
 const authErrors = require('./auth-errors');
 const emailOpts = require('./auth-email-options');
 const mailer = require('local-mailer');
+const knex = require('knex')(config.database);
 const { UserModel } = require('local-models');
 
 const User = new UserModel();
@@ -22,7 +23,7 @@ const User = new UserModel();
  * @returns {Object} - JSON response {status, data}
  */
 const signup = (req, res) =>
-  User.knex()
+  knex('users')
     .where({ email: req.body.email })
     .first()
     .then((user) => {
@@ -72,7 +73,7 @@ const signup = (req, res) =>
 const confirmAccount = (req, res) => {
   const { confirmToken } = req.query;
 
-  return User.knex()
+  return knex('users')
     .where({ confirmed_token: confirmToken })
     .first()
     .then((obj) => {
@@ -114,7 +115,7 @@ const confirmAccount = (req, res) => {
  * @returns {Object} - JSON response {status, data}
  */
 const login = (req, res) =>
-  User.knex()
+  knex('users')
     .innerJoin('roles', 'users.role_id', 'roles.id')
     .where({ email: req.body.email })
     .first()
@@ -134,19 +135,19 @@ const login = (req, res) =>
     })
     .then(({ isMatch, user }) => {
       if (!isMatch) {
-        return User.knex()
+        return knex('users')
           .where({ uid: user.uid })
           .increment('login_attempts', 1)
           .then(() =>
-            User.knex()
+            knex('users')
               .where({ uid: user.uid })
               .first()
               .then(updatedUser =>
                 User.checkForLockedAccount(updatedUser)))
           .then(({ locked, userObj }) => ({
             isMatch,
-            user: userObj,
             accountLocked: locked,
+            user: userObj,
           }));
       }
 
@@ -200,14 +201,14 @@ const login = (req, res) =>
 /**
  * User forgot password flow
  *
- * @description Ensure user is confirmed; Generate reset password attributes; Send email
+ * @description Verify user, send user's pre-selected security questions
  * @function
  * @param {Object} req - HTTP request
  * @param {Object} res - HTTP response
  * @returns {Object} - JSON response {status, data}
  */
 const forgotPassword = (req, res) =>
-  User.knex()
+  knex('users')
     .where({ email: req.body.email })
     .first()
     .then((obj) => {
@@ -224,21 +225,125 @@ const forgotPassword = (req, res) =>
     .then((obj) => {
       const user = obj;
 
-      logger.info({ uid: user.uid }, 'AUTH-CTRL.FORGOT-PASSWORD: Updating user attributes');
+      logger.info({ uid: user.uid }, 'AUTH-CTRL.FORGOT-PASSWORD: Retrieving security questions');
 
-      return User.update(user, {
-        reset_password_token: md5(user.password + Math.random()),
-        reset_password_expires: addMinutes(new Date(), config.auth.tokens.passwordReset.expireTime),
-      });
+      const query = knex.select('short_name', 'question')
+        .from('users_security_questions')
+        .innerJoin(
+          'users',
+          'users.id',
+          'users_security_questions.user_id',
+        )
+        .innerJoin(
+          'security_questions',
+          'security_questions.id',
+          'users_security_questions.question_id',
+        )
+        .where({ email: user.email });
+
+      return { uid: user.uid, query };
     })
-    .then(updatedUser => mailer.send(updatedUser, emailOpts.RESET_PASSWORD_EMAIL))
-    .then(({ user }) => res.json({ data: { user: { uid: user.uid } } }))
+    .then(({ uid, query }) => query.then(questions => res.json({ data: { uid, questions } })))
     .catch((error) => {
       const err = formatError(error);
 
       logger[err.level]({ err: error, response: err }, `AUTH-CTRL.FORGOT-PASSWORD: ${err.message}`);
       return res.status(err.statusCode).json({ errors: err.jsonResponse });
     });
+
+/**
+ * User verify security questions flow
+ *
+ * @description Verify answers to security questions, send email with verification code
+ * @function
+ * @param {Object} req - HTTP request
+ * @param {Object} res - HTTP response
+ * @returns {Object} - JSON response {status, data}
+ */
+const verifySecurityQuestions = (req, res) => {
+  const answers = Object.entries(req.body.answers);
+
+  return knex.select('short_name', 'answer')
+    .from('users_security_questions')
+    .innerJoin(
+      'users',
+      'users.id',
+      'users_security_questions.user_id',
+    )
+    .innerJoin(
+      'security_questions',
+      'security_questions.id',
+      'users_security_questions.question_id',
+    )
+    .where({ uid: req.body.uid })
+    .whereIn(['short_name', 'answer'], answers)
+    .then(queryResults =>
+      knex('users')
+        .where({ uid: req.body.uid })
+        .first()
+        .then((user) => {
+          if (user && user.account_locked) throw new ApiError(authErrors.ACCOUNT_LOCKED);
+
+          return { results: queryResults, user };
+        })
+        .then(({ results, user }) => {
+          const isValid = results.length === answers.length;
+
+          if (!isValid) {
+            return knex('users')
+              .where({ uid: req.body.uid })
+              .increment('security_question_attempts', 1)
+              .then(() =>
+                knex('users')
+                  .where({ uid: req.body.uid })
+                  .first()
+                  .then(updatedUser =>
+                    User.checkForLockedAccount(updatedUser)))
+              .then(({ locked }) => ({
+                isValid,
+                accountLocked: locked,
+                user,
+              }));
+          }
+
+          return {
+            isValid,
+            accountLocked: false,
+            user,
+          };
+        })
+        .then(({ isValid, accountLocked, user }) => {
+          if (accountLocked) {
+            return mailer.send(user, emailOpts.UNLOCK_ACCOUNT_EMAIL)
+              .then(() => { throw new ApiError(authErrors.ACCOUNT_LOCKED); });
+          }
+
+          return { isValid, user };
+        })
+        .then(({ isValid, user }) => {
+          if (!isValid) {
+            throw new ApiError(authErrors.INVALID_SECURITY_QUESTION);
+          }
+
+          logger.info({ uid: user.uid },
+            'AUTH-CTRL.VERIFY-QUESTIONS: Creating reset password code');
+
+          return User.update(user, {
+            account_locked: true,
+            reset_password_token: md5(user.password + Math.random()),
+            reset_password_expires: addMinutes(new Date(),
+              config.auth.tokens.passwordReset.expireTime),
+          });
+        })
+        .then(updatedUser => mailer.send(updatedUser, emailOpts.RESET_PASSWORD_EMAIL))
+        .then(({ user }) => res.json({ data: { user: { uid: user.uid } } }))
+        .catch((error) => {
+          const err = formatError(error);
+
+          logger[err.level]({ err: error, response: err }, `AUTH-CTRL.FORGOT-PASSWORD: ${err.message}`);
+          return res.status(err.statusCode).json({ errors: err.jsonResponse });
+        }));
+};
 
 /**
  * User reset password flow
@@ -252,7 +357,7 @@ const forgotPassword = (req, res) =>
 const resetPassword = (req, res) => {
   const { resetPasswordToken } = req.query;
 
-  return User.knex()
+  return knex('users')
     .where({ reset_password_token: resetPasswordToken })
     .first()
     .then((obj) => {
@@ -282,12 +387,14 @@ const resetPassword = (req, res) => {
       if (hashedPassword) {
         return User.update(user, {
           password: hashedPassword,
+          account_locked: false,
           reset_password_token: null,
           reset_password_expires: null,
         }, ['reset_password_token', 'reset_password_expires']);
       }
 
       return User.update(user, {
+        account_locked: false,
         reset_password_token: null,
         reset_password_expires: null,
       });
@@ -319,7 +426,7 @@ const resetPassword = (req, res) => {
 const unlockAccount = (req, res) => {
   const { unlockAccountToken } = req.query;
 
-  return User.knex()
+  return knex('users')
     .where({ unlock_account_token: unlockAccountToken })
     .first()
     .then((obj) => {
@@ -361,7 +468,7 @@ const unlockAccount = (req, res) => {
  * @returns {Object} - JSON response {status, data}
  */
 const resendConfirmation = (req, res) =>
-  User.knex()
+  knex('users')
     .where({ email: req.body.email })
     .first()
     .then((user) => {
@@ -402,7 +509,7 @@ const resendConfirmation = (req, res) =>
  * @returns {Object} - JSON response {status, data}
  */
 const resendUnlockAccount = (req, res) =>
-  User.knex()
+  knex('users')
     .where({ email: req.body.email })
     .first()
     .then((user) => {
@@ -434,6 +541,7 @@ module.exports = {
   confirmAccount,
   login,
   forgotPassword,
+  verifySecurityQuestions,
   resetPassword,
   unlockAccount,
   resendConfirmation,
