@@ -395,7 +395,7 @@ describe('Black Box Test: Auth', () => {
                     .where({ uid: body.data.user.uid })
                     .first()
                     .then((selectedUser) => {
-                      expect(selectedUser.reset_password_token).is.not.null;
+                      expect(selectedUser.reset_password_code).is.not.null;
                       expect(selectedUser.reset_password_expires).is.not.null;
                       expect(isBefore(new Date(selectedUser.reset_password_expires),
                         addMinutes(new Date(), 3))).to.be.true;
@@ -485,7 +485,7 @@ describe('Black Box Test: Auth', () => {
                     .then((selectedUser) => {
                       request
                         .post('/api/auth/reset-password')
-                        .query({ resetPasswordToken: selectedUser.reset_password_token })
+                        .query({ resetPasswordToken: selectedUser.reset_password_code })
                         .send({
                           password: 'password1',
                         })
@@ -502,7 +502,7 @@ describe('Black Box Test: Auth', () => {
                             .where({ uid: selectedUser.uid })
                             .first()
                             .then((updatedUser) => {
-                              expect(updatedUser.reset_password_token).is.null;
+                              expect(updatedUser.reset_password_code).is.null;
                               expect(updatedUser.reset_password_expires).is.null;
                               expect(selectedUser.password).to.not.equal(updatedUser.password);
 
@@ -571,7 +571,7 @@ describe('Black Box Test: Auth', () => {
 
                       request
                         .post('/api/auth/reset-password')
-                        .query({ resetPasswordToken: selectedUser.reset_password_token })
+                        .query({ resetPasswordToken: selectedUser.reset_password_code })
                         .send({
                           password: 'password1',
                         })

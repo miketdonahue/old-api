@@ -2,6 +2,7 @@ const jwt = require('jsonwebtoken');
 const logger = require('local-logger');
 const config = require('config');
 const md5 = require('md5');
+const generateCode = require('local-generate-code');
 const addMinutes = require('date-fns/add_minutes');
 const ApiError = require('local-errors');
 const formatError = require('local-error-handler');
@@ -144,10 +145,10 @@ const login = (req, res) =>
               .first()
               .then(updatedUser =>
                 User.checkForLockedAccount(updatedUser)))
-          .then(({ locked, userObj }) => ({
+          .then(updatedUser => ({
             isMatch,
-            accountLocked: locked,
-            user: userObj,
+            accountLocked: updatedUser.locked,
+            user: updatedUser.user,
           }));
       }
 
@@ -199,7 +200,7 @@ const login = (req, res) =>
     });
 
 /**
- * User forgot password flow
+ * User verify account flow
  *
  * @description Verify user, send user's pre-selected security questions
  * @function
@@ -207,7 +208,7 @@ const login = (req, res) =>
  * @param {Object} res - HTTP response
  * @returns {Object} - JSON response {status, data}
  */
-const forgotPassword = (req, res) =>
+const verifyAccount = (req, res) =>
   knex('users')
     .where({ email: req.body.email })
     .first()
@@ -219,13 +220,13 @@ const forgotPassword = (req, res) =>
         throw new ApiError(authErrors.INVALID_USER_OR_NOT_CONFIRMED(user));
       }
 
-      logger.info({ uid: user.uid }, 'AUTH-CTRL.FORGOT-PASSWORD: Found user');
+      logger.info({ uid: user.uid }, 'AUTH-CTRL.VERIFY-ACCOUNT: Found user');
       return user;
     })
     .then((obj) => {
       const user = obj;
 
-      logger.info({ uid: user.uid }, 'AUTH-CTRL.FORGOT-PASSWORD: Retrieving security questions');
+      logger.info({ uid: user.uid }, 'AUTH-CTRL.VERIFY-ACCOUNT: Retrieving security questions');
 
       const query = knex.select('short_name', 'question')
         .from('users_security_questions')
@@ -247,7 +248,7 @@ const forgotPassword = (req, res) =>
     .catch((error) => {
       const err = formatError(error);
 
-      logger[err.level]({ err: error, response: err }, `AUTH-CTRL.FORGOT-PASSWORD: ${err.message}`);
+      logger[err.level]({ err: error, response: err }, `AUTH-CTRL.VERIFY-ACCOUNT: ${err.message}`);
       return res.status(err.statusCode).json({ errors: err.jsonResponse });
     });
 
@@ -261,6 +262,7 @@ const forgotPassword = (req, res) =>
  * @returns {Object} - JSON response {status, data}
  */
 const verifySecurityQuestions = (req, res) => {
+  const { verificationType } = req.params;
   const answers = Object.entries(req.body.answers);
 
   return knex.select('short_name', 'answer')
@@ -291,18 +293,18 @@ const verifySecurityQuestions = (req, res) => {
 
           if (!isValid) {
             return knex('users')
-              .where({ uid: req.body.uid })
+              .where({ uid: user.uid })
               .increment('security_question_attempts', 1)
               .then(() =>
                 knex('users')
-                  .where({ uid: req.body.uid })
+                  .where({ uid: user.uid })
                   .first()
                   .then(updatedUser =>
                     User.checkForLockedAccount(updatedUser)))
-              .then(({ locked }) => ({
+              .then(updatedUser => ({
                 isValid,
-                accountLocked: locked,
-                user,
+                accountLocked: updatedUser.locked,
+                user: updatedUser.user,
               }));
           }
 
@@ -321,26 +323,47 @@ const verifySecurityQuestions = (req, res) => {
           return { isValid, user };
         })
         .then(({ isValid, user }) => {
+          let codeField;
+          let expiresField;
+
           if (!isValid) {
             throw new ApiError(authErrors.INVALID_SECURITY_QUESTION);
           }
 
-          logger.info({ uid: user.uid },
-            'AUTH-CTRL.VERIFY-QUESTIONS: Creating reset password code');
+          if (verificationType === 'reset-password') {
+            codeField = 'reset_password_code';
+            expiresField = 'reset_password_expires';
+          }
+
+          if (verificationType === 'unlock-account') {
+            codeField = 'unlock_account_code';
+            expiresField = 'unlock_account_expires';
+          }
+
+          logger.info({ uid: user.uid, verificationType },
+            'AUTH-CTRL.VERIFY-QUESTIONS: Creating verification code code');
 
           return User.update(user, {
             account_locked: true,
-            reset_password_token: md5(user.password + Math.random()),
-            reset_password_expires: addMinutes(new Date(),
+            [codeField]: generateCode(),
+            [expiresField]: addMinutes(new Date(),
               config.auth.tokens.passwordReset.expireTime),
           });
         })
-        .then(updatedUser => mailer.send(updatedUser, emailOpts.RESET_PASSWORD_EMAIL))
+        .then((updatedUser) => {
+          let emailType;
+
+          if (verificationType === 'reset-password') emailType = 'RESET_PASSWORD_EMAIL';
+          if (verificationType === 'unlock-account') emailType = 'UNLOCK_ACCOUNT_EMAIL';
+
+          return mailer.send(updatedUser, emailOpts[emailType]);
+        })
         .then(({ user }) => res.json({ data: { user: { uid: user.uid } } }))
         .catch((error) => {
           const err = formatError(error);
 
-          logger[err.level]({ err: error, response: err }, `AUTH-CTRL.FORGOT-PASSWORD: ${err.message}`);
+          logger[err.level]({ err: error, response: err },
+            `AUTH-CTRL.FORGOT-PASSWORD: ${err.message}`);
           return res.status(err.statusCode).json({ errors: err.jsonResponse });
         }));
 };
@@ -354,11 +377,9 @@ const verifySecurityQuestions = (req, res) => {
  * @param {Object} res - HTTP response
  * @returns {Object} - JSON response {status, data}
  */
-const resetPassword = (req, res) => {
-  const { resetPasswordToken } = req.query;
-
-  return knex('users')
-    .where({ reset_password_token: resetPasswordToken })
+const resetPassword = (req, res) =>
+  knex('users')
+    .where({ reset_password_code: req.body.resetPasswordCode })
     .first()
     .then((obj) => {
       const user = obj;
@@ -388,14 +409,14 @@ const resetPassword = (req, res) => {
         return User.update(user, {
           password: hashedPassword,
           account_locked: false,
-          reset_password_token: null,
+          reset_password_code: null,
           reset_password_expires: null,
-        }, ['reset_password_token', 'reset_password_expires']);
+        }, ['reset_password_code', 'reset_password_expires']);
       }
 
       return User.update(user, {
         account_locked: false,
-        reset_password_token: null,
+        reset_password_code: null,
         reset_password_expires: null,
       });
     })
@@ -412,7 +433,6 @@ const resetPassword = (req, res) => {
       logger[err.level]({ err: error, response: err }, `AUTH-CTRL.RESET-PASSWORD: ${err.message}`);
       return res.status(err.statusCode).json({ errors: err.jsonResponse });
     });
-};
 
 /**
  * User unlock account flow
@@ -423,11 +443,9 @@ const resetPassword = (req, res) => {
  * @param {Object} res - HTTP response
  * @returns {Object} - JSON response {status, data}
  */
-const unlockAccount = (req, res) => {
-  const { unlockAccountToken } = req.query;
-
-  return knex('users')
-    .where({ unlock_account_token: unlockAccountToken })
+const unlockAccount = (req, res) =>
+  knex('users')
+    .where({ unlock_account_code: req.body.unlockAccountCode })
     .first()
     .then((obj) => {
       const user = obj;
@@ -441,7 +459,7 @@ const unlockAccount = (req, res) => {
 
       return User.update(user, {
         account_locked: false,
-        unlock_account_token: null,
+        unlock_account_code: null,
         unlock_account_expires: null,
         login_attempts: 0,
       });
@@ -456,7 +474,6 @@ const unlockAccount = (req, res) => {
       logger[err.level]({ err: error, response: err }, `AUTH-CTRL.UNLOCK-ACCOUNT: ${err.message}`);
       return res.status(err.statusCode).json({ errors: err.jsonResponse });
     });
-};
 
 /**
  * Resend confirmation email
@@ -520,7 +537,7 @@ const resendUnlockAccount = (req, res) =>
       logger.info({ uid: user.uid }, 'AUTH-CTRL.REUNLOCK: Creating unlock account token');
 
       return User.update(user, {
-        unlock_account_token: md5(user.email + Math.random()),
+        unlock_account_code: generateCode(),
         unlock_account_expires: addMinutes(new Date(), config.auth.tokens.unlockAccount.expireTime),
       });
     })
@@ -540,7 +557,7 @@ module.exports = {
   signup,
   confirmAccount,
   login,
-  forgotPassword,
+  verifyAccount,
   verifySecurityQuestions,
   resetPassword,
   unlockAccount,
