@@ -52,7 +52,7 @@ describe.skip('Unit Test: Users', () => {
 
       const users = [
         {
-          uid: '',
+          uuid: '',
           first_name: '',
           last_name: '',
           email: '',
@@ -78,7 +78,7 @@ describe.skip('Unit Test: Users', () => {
         expect(response.data.users).to.be.an('array');
         expect(response.data.users[0]).to.have.all.keys(
           [
-            'uid',
+            'uuid',
             'first_name',
             'last_name',
             'email',
@@ -115,16 +115,16 @@ describe.skip('Unit Test: Users', () => {
   });
 
   describe('Show User', () => {
-    it('should return a single user given the user\'s uid', () => {
+    it('should return a single user given the user\'s uuid', () => {
       const userModel = mock.userModel;
       const req = {
         params: {
-          uid: '123abc',
+          uuid: '123abc',
         },
       };
 
       const user = {
-        uid: '123abc',
+        uuid: '123abc',
       };
 
       userModel.where.returnsThis();
@@ -147,7 +147,7 @@ describe.skip('Unit Test: Users', () => {
       const userModel = mock.userModel;
       const req = {
         params: {
-          uid: '123abc',
+          uuid: '123abc',
         },
       };
 
@@ -165,7 +165,7 @@ describe.skip('Unit Test: Users', () => {
         expect(status).to.equal(400);
         expect(response.status).to.equal('fail');
         expect(response).to.have.all.keys('status', 'name', 'data');
-        expect(response.data).to.have.all.keys('uid');
+        expect(response.data).to.have.all.keys('uuid');
         expect(response.name).to.equal('UserNotFound');
       });
     });
@@ -182,12 +182,12 @@ describe.skip('Unit Test: Users', () => {
           password: 'password',
         },
         params: {
-          uid: '123abc',
+          uuid: '123abc',
         },
       };
 
       const user = {
-        uid: '123abc',
+        uuid: '123abc',
       };
 
       userModel.where.returnsThis();
@@ -206,7 +206,7 @@ describe.skip('Unit Test: Users', () => {
         expect(response.status).to.equal('success');
         expect(response).to.have.all.keys('status', 'data');
         expect(response.data).to.have.all.keys('user');
-        expect(response.data.user).to.have.all.keys('uid', 'first_name', 'last_name', 'email', 'last_visit', 'created_at', 'updated_at', 'deleted_at');
+        expect(response.data.user).to.have.all.keys('uuid', 'first_name', 'last_name', 'email', 'last_visit', 'created_at', 'updated_at', 'deleted_at');
       });
     });
 
@@ -220,12 +220,12 @@ describe.skip('Unit Test: Users', () => {
           password: 'new_password',
         },
         params: {
-          uid: '123abc',
+          uuid: '123abc',
         },
       };
 
       const user = {
-        uid: '123abc',
+        uuid: '123abc',
       };
 
       userModel.where.returnsThis();
@@ -245,7 +245,7 @@ describe.skip('Unit Test: Users', () => {
         expect(response.status).to.equal('success');
         expect(response).to.have.all.keys('status', 'data');
         expect(response.data).to.have.all.keys('user');
-        expect(response.data.user).to.have.all.keys('uid', 'first_name', 'last_name', 'email', 'last_visit', 'created_at', 'updated_at', 'deleted_at');
+        expect(response.data.user).to.have.all.keys('uuid', 'first_name', 'last_name', 'email', 'last_visit', 'created_at', 'updated_at', 'deleted_at');
       });
     });
 
@@ -256,12 +256,12 @@ describe.skip('Unit Test: Users', () => {
           firstName: 'Mike',
         },
         params: {
-          uid: '123abc',
+          uuid: '123abc',
         },
       };
 
       const user = {
-        uid: '123abc',
+        uuid: '123abc',
       };
 
       userModel.where.returnsThis();
@@ -284,12 +284,12 @@ describe.skip('Unit Test: Users', () => {
           firstName: 'Mike',
         },
         params: {
-          uid: '123abc',
+          uuid: '123abc',
         },
       };
 
       const user = {
-        uid: '123abc',
+        uuid: '123abc',
       };
 
       userModel.where.returnsThis();
@@ -320,7 +320,7 @@ describe.skip('Unit Test: Users', () => {
           password: 'password',
         },
         params: {
-          uid: '123abc',
+          uuid: '123abc',
         },
       };
 
@@ -337,7 +337,7 @@ describe.skip('Unit Test: Users', () => {
         expect(status).to.equal(400);
         expect(response.status).to.equal('fail');
         expect(response).to.have.all.keys('status', 'name', 'data');
-        expect(response.data).to.have.all.keys('uid');
+        expect(response.data).to.have.all.keys('uuid');
         expect(response.name).to.equal('UserNotFound');
       });
     });
@@ -348,12 +348,12 @@ describe.skip('Unit Test: Users', () => {
       const userModel = mock.userModel;
       const req = {
         params: {
-          uid: '123abc',
+          uuid: '123abc',
         },
       };
 
       const user = {
-        uid: '123abc',
+        uuid: '123abc',
       };
 
       userModel.where.returnsThis();
@@ -376,7 +376,7 @@ describe.skip('Unit Test: Users', () => {
       const userModel = mock.userModel;
       const req = {
         params: {
-          uid: '123abc',
+          uuid: '123abc',
         },
       };
 
@@ -393,7 +393,7 @@ describe.skip('Unit Test: Users', () => {
         expect(status).to.equal(400);
         expect(response.status).to.equal('fail');
         expect(response).to.have.all.keys('status', 'name', 'data');
-        expect(response.data).to.have.all.keys('uid');
+        expect(response.data).to.have.all.keys('uuid');
         expect(response.name).to.equal('UserNotFound');
       });
     });

@@ -16,6 +16,7 @@ module.exports = {
     lockable: {
       maxAttempts: 5,
     },
+    securityQuestions: true,
     tokens: {
       // Expire time is in minutes
       passwordReset: {

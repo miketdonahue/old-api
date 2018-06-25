@@ -1,4 +1,4 @@
-const shortId = require('shortid');
+const createUuid = require('uuid/v4');
 const md5 = require('md5');
 const addMinutes = require('date-fns/add_minutes');
 const argon2 = require('argon2');
@@ -26,7 +26,7 @@ const seeder = isDevelopment ? (knex, Promise) => {
     .then((password) => {
       for (let i = 0; i < numberOfUsers; i++) {
         const user = {
-          uid: shortId.generate(),
+          uuid: createUuid(),
           role_id: 1,
           first_name: chance.first(),
           last_name: chance.last(),

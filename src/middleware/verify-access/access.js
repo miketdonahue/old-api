@@ -23,11 +23,11 @@ function listAction(user, resource) {
  * @function
  * @param {Object} user - User information from JWT
  * @param {String} resource - Name of the route resource
- * @param {String} paramsUid - UID from the route params
+ * @param {String} paramsUuid - UUID from the route params
  * @returns {Object} - Permissions from AccessControl module
  */
-function createAction(user, resource, paramsUid) {
-  const currentUser = user.uid === paramsUid;
+function createAction(user, resource, paramsUuid) {
+  const currentUser = user.uuid === paramsUuid;
 
   return currentUser ?
     access.can(user.role).createOwn(resource) :
@@ -41,11 +41,11 @@ function createAction(user, resource, paramsUid) {
  * @function
  * @param {Object} user - User information from JWT
  * @param {String} resource - Name of the route resource
- * @param {String} paramsUid - UID from the route params
+ * @param {String} paramsUuid - UUID from the route params
  * @returns {Object} - Permissions from AccessControl module
  */
-function showAction(user, resource, paramsUid) {
-  const currentUser = user.uid === paramsUid;
+function showAction(user, resource, paramsUuid) {
+  const currentUser = user.uuid === paramsUuid;
 
   return currentUser ?
     access.can(user.role).readOwn(resource) :
@@ -59,11 +59,11 @@ function showAction(user, resource, paramsUid) {
  * @function
  * @param {Object} user - User information from JWT
  * @param {String} resource - Name of the route resource
- * @param {String} paramsUid - UID from the route params
+ * @param {String} paramsUuid - UUID from the route params
  * @returns {Object} - Permissions from AccessControl module
  */
-function updateAction(user, resource, paramsUid) {
-  const currentUser = user.uid === paramsUid;
+function updateAction(user, resource, paramsUuid) {
+  const currentUser = user.uuid === paramsUuid;
 
   return currentUser ?
     access.can(user.role).updateOwn(resource) :
@@ -77,11 +77,11 @@ function updateAction(user, resource, paramsUid) {
  * @function
  * @param {Object} user - User information from JWT
  * @param {String} resource - Name of the route resource
- * @param {String} paramsUid - UID from the route params
+ * @param {String} paramsUuid - UUID from the route params
  * @returns {Object} - Permissions from AccessControl module
  */
-function destroyAction(user, resource, paramsUid) {
-  const currentUser = user.uid === paramsUid;
+function destroyAction(user, resource, paramsUuid) {
+  const currentUser = user.uuid === paramsUuid;
 
   return currentUser ?
     access.can(user.role).deleteOwn(resource) :
@@ -96,10 +96,10 @@ function destroyAction(user, resource, paramsUid) {
  * @param {Object} user - User information from JWT
  * @param {String} resource - Name of the route resource
  * @param {String} action - Name of the route action
- * @param {String} paramsUid - UID from the route params
+ * @param {String} paramsUuid - UUID from the route params
  * @returns {Object} - Permissions from AccessControl module
  */
-function getPermissions(user, resource, action, paramsUid) {
+function getPermissions(user, resource, action, paramsUuid) {
   let permissions;
 
   switch (action) {
@@ -107,16 +107,16 @@ function getPermissions(user, resource, action, paramsUid) {
       permissions = listAction(user, resource);
       break;
     case 'create':
-      permissions = createAction(user, resource, paramsUid);
+      permissions = createAction(user, resource, paramsUuid);
       break;
     case 'show':
-      permissions = showAction(user, resource, paramsUid);
+      permissions = showAction(user, resource, paramsUuid);
       break;
     case 'update':
-      permissions = updateAction(user, resource, paramsUid);
+      permissions = updateAction(user, resource, paramsUuid);
       break;
     case 'destroy':
-      permissions = destroyAction(user, resource, paramsUid);
+      permissions = destroyAction(user, resource, paramsUuid);
       break;
     default:
       break;

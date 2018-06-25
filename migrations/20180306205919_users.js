@@ -1,7 +1,7 @@
 exports.up = knex =>
   knex.schema.createTable('users', (t) => {
     t.increments('id').unsigned().primary();
-    t.string('uid').notNull().unique();
+    t.uuid('uuid').notNull().unique();
     t.integer('role_id').unsigned().notNull();
     t.string('first_name').notNull();
     t.string('last_name').notNull();
@@ -31,7 +31,7 @@ exports.up = knex =>
     t.dateTime('deleted_at').nullable();
 
     t.foreign('role_id').references('id').inTable('roles').onDelete('CASCADE');
-    t.index(['uid', 'email', 'zip_code', 'title']);
+    t.index(['uuid', 'email', 'zip_code', 'title']);
   });
 
 exports.down = knex =>

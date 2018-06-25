@@ -33,7 +33,7 @@ describe.skip('Black Box Test: Users', () => {
           expect(body.data).to.have.all.keys('users');
           expect(body.data.users).to.be.an('array');
           expect(body.data.users[0]).to.be.an('object');
-          expect(body.data.users[0]).to.have.all.keys('uid', 'first_name', 'last_name', 'email', 'last_visit', 'created_at', 'updated_at', 'deleted_at');
+          expect(body.data.users[0]).to.have.all.keys('uuid', 'first_name', 'last_name', 'email', 'last_visit', 'created_at', 'updated_at', 'deleted_at');
           expect(body.data.users[0].deleted_at).to.be.null;
           expect(body.data.users).to.have.lengthOf(5);
 
@@ -60,13 +60,13 @@ describe.skip('Black Box Test: Users', () => {
     });
   });
 
-  describe('GET /api/users/:uid', () => {
+  describe('GET /api/users/:uuid', () => {
     it('should return the given user', (done) => {
       User.knex()
         .first()
         .then((user) => {
           request
-            .get(`/api/users/${user.uid}`)
+            .get(`/api/users/${user.uuid}`)
             .expect(200)
             .end((err, response) => {
               const body = response.body;
@@ -74,7 +74,7 @@ describe.skip('Black Box Test: Users', () => {
               expect(body.status).to.equal('success');
               expect(body.data).to.have.all.keys('user');
               expect(body.data.user).to.be.an('object');
-              expect(body.data.user).to.have.all.keys('uid', 'first_name', 'last_name', 'email', 'last_visit', 'created_at', 'updated_at', 'deleted_at');
+              expect(body.data.user).to.have.all.keys('uuid', 'first_name', 'last_name', 'email', 'last_visit', 'created_at', 'updated_at', 'deleted_at');
               expect(body.data.user.deleted_at).to.be.null;
 
               done(err);
@@ -91,7 +91,7 @@ describe.skip('Black Box Test: Users', () => {
 
           expect(body.status).to.equal('fail');
           expect(body).to.have.all.keys('status', 'name', 'data');
-          expect(body.data).to.have.all.keys('uid');
+          expect(body.data).to.have.all.keys('uuid');
           expect(body.name).to.equal('UserNotFound');
 
           done(err);
@@ -99,13 +99,13 @@ describe.skip('Black Box Test: Users', () => {
     });
   });
 
-  describe('PUT /api/users/:uid', () => {
+  describe('PUT /api/users/:uuid', () => {
     it('should update the given user\'s details', (done) => {
       User.knex()
         .first()
         .then((user) => {
           request
-            .put(`/api/users/${user.uid}`)
+            .put(`/api/users/${user.uuid}`)
             .send({
               firstName: 'Joe',
               lastName: 'York',
@@ -117,7 +117,7 @@ describe.skip('Black Box Test: Users', () => {
               expect(body.status).to.equal('success');
               expect(body.data).to.have.all.keys('user');
               expect(body.data.user).to.be.an('object');
-              expect(body.data.user).to.have.all.keys('uid', 'first_name', 'last_name', 'email', 'last_visit', 'created_at', 'updated_at', 'deleted_at');
+              expect(body.data.user).to.have.all.keys('uuid', 'first_name', 'last_name', 'email', 'last_visit', 'created_at', 'updated_at', 'deleted_at');
               expect(body.data.user.first_name).to.equal('Joe');
               expect(body.data.user.last_name).to.equal('York');
 
@@ -135,7 +135,7 @@ describe.skip('Black Box Test: Users', () => {
 
           expect(body.status).to.equal('fail');
           expect(body).to.have.all.keys('status', 'name', 'data');
-          expect(body.data).to.have.all.keys('uid');
+          expect(body.data).to.have.all.keys('uuid');
           expect(body.name).to.equal('UserNotFound');
 
           done(err);
@@ -143,13 +143,13 @@ describe.skip('Black Box Test: Users', () => {
     });
   });
 
-  describe('DELETE /api/users/:uid', () => {
+  describe('DELETE /api/users/:uuid', () => {
     it('should destroy the given user', (done) => {
       User.knex()
         .first()
         .then((user) => {
           request
-            .delete(`/api/users/${user.uid}`)
+            .delete(`/api/users/${user.uuid}`)
             .expect(200)
             .end((err, response) => {
               const body = response.body;
@@ -171,7 +171,7 @@ describe.skip('Black Box Test: Users', () => {
 
           expect(body.status).to.equal('fail');
           expect(body).to.have.all.keys('status', 'name', 'data');
-          expect(body.data).to.have.all.keys('uid');
+          expect(body.data).to.have.all.keys('uuid');
           expect(body.name).to.equal('UserNotFound');
 
           done(err);
