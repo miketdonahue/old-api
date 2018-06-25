@@ -48,7 +48,7 @@ describe('Black Box Test: Verify-Jwt', () => {
                 const body = response.body;
 
                 request
-                  .get(`/api/users/${user.uid}`)
+                  .get(`/api/users/${user.uuid}`)
                   .set('Authorization', `Bearer ${body.data.token}`)
                   .expect(200)
                   .end((e, res) => {
@@ -88,7 +88,7 @@ describe('Black Box Test: Verify-Jwt', () => {
               .expect(200)
               .end(() => {
                 request
-                  .get(`/api/users/${user.uid}`)
+                  .get(`/api/users/${user.uuid}`)
                   .expect(500)
                   .end((err, response) => {
                     const body = response.body;

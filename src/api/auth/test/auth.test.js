@@ -65,7 +65,7 @@ describe('Unit Test: Auth', () => {
 
   describe('Signup', () => {
     it('should create a new user if the given email does not exist', () => {
-      const user = { uid: '123abc' };
+      const user = { uuid: '123abc' };
       const req = {
         body: {
           email: 'mike@mail.com',
@@ -96,8 +96,8 @@ describe('Unit Test: Auth', () => {
         expect(status).to.equal(201);
         expect(response).to.have.all.keys('data');
         expect(response.data).to.have.all.keys('user');
-        expect(response.data.user).to.have.all.keys('uid');
-        expect(response.data.user.uid).to.equal('123abc');
+        expect(response.data.user).to.have.all.keys('uuid');
+        expect(response.data.user.uuid).to.equal('123abc');
       });
     });
 
@@ -152,7 +152,7 @@ describe('Unit Test: Auth', () => {
       };
 
       const user = {
-        uid: '123abc',
+        uuid: '123abc',
         confirmed_expires: addMinutes(new Date(), 1),
       };
 
@@ -171,8 +171,8 @@ describe('Unit Test: Auth', () => {
 
         expect(response).to.have.all.keys('data');
         expect(response.data).to.have.all.keys('user');
-        expect(response.data.user).to.have.all.keys('uid');
-        expect(response.data.user.uid).to.equal('123abc');
+        expect(response.data.user).to.have.all.keys('uuid');
+        expect(response.data.user.uuid).to.equal('123abc');
       });
     });
 
@@ -263,7 +263,7 @@ describe('Unit Test: Auth', () => {
       };
 
       const user = {
-        uid: '123abc',
+        uuid: '123abc',
         confirmed: true,
         role: 'user',
       };
@@ -390,7 +390,7 @@ describe('Unit Test: Auth', () => {
       };
 
       const user = {
-        uid: '123abc',
+        uuid: '123abc',
         confirmed: true,
       };
 
@@ -443,7 +443,7 @@ describe('Unit Test: Auth', () => {
       };
 
       const user = {
-        uid: '123abc',
+        uuid: '123abc',
         confirmed: true,
         role: 'user',
       };
@@ -492,7 +492,7 @@ describe('Unit Test: Auth', () => {
       };
 
       const user = {
-        uid: '123abc',
+        uuid: '123abc',
         password: 'password',
         confirmed: true,
         role: 'user',
@@ -515,8 +515,8 @@ describe('Unit Test: Auth', () => {
 
         expect(response).to.have.all.keys('data');
         expect(response.data).to.have.all.keys('user');
-        expect(response.data.user).to.have.all.keys('uid');
-        expect(response.data.user.uid).to.equal('123abc');
+        expect(response.data.user).to.have.all.keys('uuid');
+        expect(response.data.user.uuid).to.equal('123abc');
       });
     });
 
@@ -610,7 +610,7 @@ describe('Unit Test: Auth', () => {
       };
 
       const user = {
-        uid: '123abc',
+        uuid: '123abc',
         reset_password_expires: addMinutes(new Date(), 1),
       };
 
@@ -633,8 +633,8 @@ describe('Unit Test: Auth', () => {
 
         expect(response).to.have.all.keys('data');
         expect(response.data).to.have.all.keys('user');
-        expect(response.data.user).to.have.all.keys('uid');
-        expect(response.data.user.uid).to.equal('123abc');
+        expect(response.data.user).to.have.all.keys('uuid');
+        expect(response.data.user.uuid).to.equal('123abc');
       });
     });
 
@@ -734,7 +734,7 @@ describe('Unit Test: Auth', () => {
       };
 
       const user = {
-        uid: '123abc',
+        uuid: '123abc',
         reset_password_expires: addMinutes(new Date(), 1),
       };
 
@@ -756,8 +756,8 @@ describe('Unit Test: Auth', () => {
 
         expect(response).to.have.all.keys('data');
         expect(response.data).to.have.all.keys('user');
-        expect(response.data.user).to.have.all.keys('uid');
-        expect(response.data.user.uid).to.equal('123abc');
+        expect(response.data.user).to.have.all.keys('uuid');
+        expect(response.data.user.uuid).to.equal('123abc');
       });
     });
   });
@@ -767,12 +767,12 @@ describe('Unit Test: Auth', () => {
       const updateUser = sandbox.stub(UserModel.prototype, 'update');
       const req = {
         body: {
-          uid: '123abc',
+          uuid: '123abc',
         },
       };
 
       const user = {
-        uid: '123abc',
+        uuid: '123abc',
       };
 
       mock.mailer.sendConfirmMail.resolves({ user });
@@ -800,7 +800,7 @@ describe('Unit Test: Auth', () => {
       const updateUser = sandbox.stub(UserModel.prototype, 'update');
       const req = {
         body: {
-          uid: '123abc',
+          uuid: '123abc',
         },
       };
 
@@ -841,12 +841,12 @@ describe('Unit Test: Auth', () => {
       };
       const req = {
         body: {
-          uid: '123abc',
+          uuid: '123abc',
         },
       };
 
       const user = {
-        uid: '123abc',
+        uuid: '123abc',
       };
 
       sandbox.stub(UserModel.prototype, 'knex').returns({

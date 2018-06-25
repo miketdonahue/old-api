@@ -2,7 +2,6 @@
 
 const app = require('../../../app.js');
 const { expect } = require('chai');
-const shortId = require('shortid');
 const addMinutes = require('date-fns/add_minutes');
 const subtractHours = require('date-fns/sub_hours');
 const isWithinRange = require('date-fns/is_within_range');
@@ -10,7 +9,7 @@ const isBefore = require('date-fns/is_before');
 const { exec } = require('child_process');
 const config = require('config');
 const request = require('supertest')(app);
-const UserModel = require('../../../models/user');
+const { UserModel } = require('local-models');
 
 const User = new UserModel();
 
@@ -46,9 +45,9 @@ describe('Black Box Test: Auth', () => {
           const body = response.body;
 
           expect(body.data).to.have.all.keys('user');
-          expect(body.data.user).to.have.all.keys('uid');
-          expect(shortId.isValid(body.data.user.uid)).to.be.true;
-          expect(body.data.user.uid).to.have.lengthOf.within(7, 14);
+          expect(body.data.user).to.have.all.keys('uuid');
+          expect(shortId.isValid(body.data.user.uuid)).to.be.true;
+          expect(body.data.user.uuid).to.have.lengthOf.within(7, 14);
 
           User.knex()
             .where({ email: 'mike@xxxxxxxx.com' })
@@ -115,12 +114,12 @@ describe('Black Box Test: Auth', () => {
               const body = response.body;
 
               expect(body.data).to.have.all.keys('user');
-              expect(body.data.user).to.have.all.keys('uid');
-              expect(shortId.isValid(body.data.user.uid)).to.be.true;
-              expect(body.data.user.uid).to.have.lengthOf.within(7, 14);
+              expect(body.data.user).to.have.all.keys('uuid');
+              expect(shortId.isValid(body.data.user.uuid)).to.be.true;
+              expect(body.data.user.uuid).to.have.lengthOf.within(7, 14);
 
               User.knex()
-                .where({ uid: body.data.user.uid })
+                .where({ uuid: body.data.user.uuid })
                 .first()
                 .then((selectedUser) => {
                   expect(selectedUser.confirmed).to.equal(1);
@@ -227,7 +226,7 @@ describe('Black Box Test: Auth', () => {
                   expect(resBody.data).to.have.all.keys('token');
 
                   User.knex()
-                    .where({ uid: body.data.user.uid })
+                    .where({ uuid: body.data.user.uuid })
                     .first()
                     .then((selectedUser) => {
                       expect(isWithinRange(selectedUser.last_visit, lowTime, highTime)).to.be.true;
@@ -387,12 +386,12 @@ describe('Black Box Test: Auth', () => {
                   const resBody = res.body;
 
                   expect(resBody.data).to.have.all.keys('user');
-                  expect(resBody.data.user).to.have.all.keys('uid');
-                  expect(shortId.isValid(resBody.data.user.uid)).to.be.true;
-                  expect(resBody.data.user.uid).to.have.lengthOf.within(7, 14);
+                  expect(resBody.data.user).to.have.all.keys('uuid');
+                  expect(shortId.isValid(resBody.data.user.uuid)).to.be.true;
+                  expect(resBody.data.user.uuid).to.have.lengthOf.within(7, 14);
 
                   User.knex()
-                    .where({ uid: body.data.user.uid })
+                    .where({ uuid: body.data.user.uuid })
                     .first()
                     .then((selectedUser) => {
                       expect(selectedUser.reset_password_code).is.not.null;
@@ -480,7 +479,7 @@ describe('Black Box Test: Auth', () => {
                 .expect(200)
                 .end(() => {
                   User.knex()
-                    .where({ uid: user.uid })
+                    .where({ uuid: user.uuid })
                     .first()
                     .then((selectedUser) => {
                       request
@@ -494,12 +493,12 @@ describe('Black Box Test: Auth', () => {
                           const body = response.body;
 
                           expect(body.data).to.have.all.keys('user');
-                          expect(body.data.user).to.have.all.keys('uid');
-                          expect(shortId.isValid(body.data.user.uid)).to.be.true;
-                          expect(body.data.user.uid).to.have.lengthOf.within(7, 14);
+                          expect(body.data.user).to.have.all.keys('uuid');
+                          expect(shortId.isValid(body.data.user.uuid)).to.be.true;
+                          expect(body.data.user.uuid).to.have.lengthOf.within(7, 14);
 
                           User.knex()
-                            .where({ uid: selectedUser.uid })
+                            .where({ uuid: selectedUser.uuid })
                             .first()
                             .then((updatedUser) => {
                               expect(updatedUser.reset_password_code).is.null;
@@ -560,7 +559,7 @@ describe('Black Box Test: Auth', () => {
                 .expect(200)
                 .end(() => {
                   User.knex()
-                    .where({ uid: user.uid })
+                    .where({ uuid: user.uuid })
                     .first()
                     .then((userObj) => {
                       const selectedUser = userObj;

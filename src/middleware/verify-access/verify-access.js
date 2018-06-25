@@ -16,7 +16,7 @@ function verifyAccess(action, resource) {
     if (config.auth.verifyAccess === false) return next();
 
     const user = objectPath.get(req, 'user');
-    const paramsUid = objectPath.get(req, 'params.uid');
+    const paramsUuid = objectPath.get(req, 'params.uuid');
 
     if (!user) {
       const appError = {
@@ -35,10 +35,10 @@ function verifyAccess(action, resource) {
       return next(appError);
     }
 
-    const permissions = getPermissions(user, resource, action, paramsUid);
+    const permissions = getPermissions(user, resource, action, paramsUuid);
 
     if (permissions.granted) {
-      logger.info({ uid: user.uid }, 'VERIFY-ACCESS-MIDDLEWARE: Authorized');
+      logger.info({ uuid: user.uuid }, 'VERIFY-ACCESS-MIDDLEWARE: Authorized');
       return next();
     }
 

@@ -17,7 +17,7 @@ describe('Unit Test: Verify Access Middleware', () => {
       res: {
         locals: {
           user: {
-            uid: '123abc',
+            uuid: '123abc',
           },
         },
       },
@@ -50,7 +50,7 @@ describe('Unit Test: Verify Access Middleware', () => {
     it('should verify the user\'s access and call next if permissions were granted', () => {
       const req = {
         params: {
-          uid: '123abc',
+          uuid: '123abc',
         },
       };
 
@@ -65,7 +65,7 @@ describe('Unit Test: Verify Access Middleware', () => {
 
       const req = {
         params: {
-          uid: '123abc',
+          uuid: '123abc',
         },
       };
 
@@ -88,7 +88,7 @@ describe('Unit Test: Verify Access Middleware', () => {
     it('should throw an error if the user was not granted permissions', () => {
       const req = {
         params: {
-          uid: '123abc',
+          uuid: '123abc',
         },
         user: {},
       };

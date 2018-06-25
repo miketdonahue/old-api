@@ -53,14 +53,14 @@ describe('Unit Test: Verify JWT Middleware', () => {
       };
 
       mock.jsonwebtoken.verify.yields(null, {
-        uid: '123abc',
+        uuid: '123abc',
         role: 'user',
       });
 
       verifyJwtMiddleware(req, mock.res, () => {
         expect(mock.jsonwebtoken.verify.calledOnce).to.be.true;
         expect(req).to.have.all.keys('headers', 'user');
-        expect(req.user).to.have.all.keys('uid', 'role');
+        expect(req.user).to.have.all.keys('uuid', 'role');
         done();
       });
     });

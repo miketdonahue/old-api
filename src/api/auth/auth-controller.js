@@ -46,14 +46,14 @@ const signup = (req, res) =>
       if (user) {
         const type = config.auth.confirmable ? 'CONFIRMATION_EMAIL' : 'WELCOME_EMAIL';
 
-        logger.info({ uid: user.uid }, 'AUTH-CTRL.SIGNUP: User created');
+        logger.info({ uuid: user.uuid }, 'AUTH-CTRL.SIGNUP: User created');
         return mailer.send(user, emailOpts[type]);
       }
 
       throw new ApiError(authErrors.DUPLICATE_EMAIL);
     })
     .then(({ user }) =>
-      res.status(201).json({ data: { user: { uid: user.uid } } }),
+      res.status(201).json({ data: { user: { uuid: user.uuid } } }),
     )
     .catch((error) => {
       const err = formatError(error);
@@ -85,7 +85,7 @@ const confirmAccount = (req, res) => {
         throw new ApiError(authErrors.INVALID_TOKEN(user, 'confirm account'));
       }
 
-      logger.info({ uid: user.uid }, 'AUTH-CTRL.CONFIRM-ACCOUNT: Confirming user\'s account');
+      logger.info({ uuid: user.uuid }, 'AUTH-CTRL.CONFIRM-ACCOUNT: Confirming user\'s account');
 
       return User.update(user, {
         confirmed: true,
@@ -95,8 +95,8 @@ const confirmAccount = (req, res) => {
     })
     .then(user => mailer.send(user, emailOpts.WELCOME_EMAIL))
     .then(({ user }) => {
-      logger.info({ uid: user.uid }, 'AUTH-CTRL.CONFIRM-ACCOUNT: Account was confirmed');
-      return res.json({ data: { user: { uid: user.uid } } });
+      logger.info({ uuid: user.uuid }, 'AUTH-CTRL.CONFIRM-ACCOUNT: Account was confirmed');
+      return res.json({ data: { user: { uuid: user.uuid } } });
     })
     .catch((error) => {
       const err = formatError(error);
@@ -131,17 +131,17 @@ const login = (req, res) =>
     .then((obj) => {
       const user = obj;
 
-      logger.info({ uid: user.uid }, 'AUTH-CTRL.LOGIN: Found user');
+      logger.info({ uuid: user.uuid }, 'AUTH-CTRL.LOGIN: Found user');
       return User.comparePassword(user, req.body.password);
     })
     .then(({ isMatch, user }) => {
       if (!isMatch) {
         return knex('users')
-          .where({ uid: user.uid })
+          .where({ uuid: user.uuid })
           .increment('login_attempts', 1)
           .then(() =>
             knex('users')
-              .where({ uid: user.uid })
+              .where({ uuid: user.uuid })
               .first()
               .then(updatedUser =>
                 User.checkForLockedAccount(updatedUser)))
@@ -171,7 +171,7 @@ const login = (req, res) =>
         throw new ApiError(authErrors.INVALID_PASSWORD);
       }
 
-      logger.info({ uid: user.uid }, 'AUTH-CTRL.LOGIN: Updating user attributes');
+      logger.info({ uuid: user.uuid }, 'AUTH-CTRL.LOGIN: Updating user attributes');
 
       return User.update(user, {
         login_attempts: 0,
@@ -181,14 +181,14 @@ const login = (req, res) =>
     })
     .then((updatedUser) => {
       jwt.sign({
-        uid: updatedUser.uid,
+        uuid: updatedUser.uuid,
         role: updatedUser.role,
       },
       config.auth.jwt.secret,
       { expiresIn: config.auth.jwt.expireTime }, (e, token) => {
         if (e) throw (e);
 
-        logger.info({ uid: updatedUser.uid }, 'AUTH-CTRL.LOGIN: Logging in user');
+        logger.info({ uuid: updatedUser.uuid }, 'AUTH-CTRL.LOGIN: Logging in user');
         return res.json({ data: { token } });
       });
     })
@@ -220,13 +220,13 @@ const verifyAccount = (req, res) =>
         throw new ApiError(authErrors.INVALID_USER_OR_NOT_CONFIRMED(user));
       }
 
-      logger.info({ uid: user.uid }, 'AUTH-CTRL.VERIFY-ACCOUNT: Found user');
+      logger.info({ uuid: user.uuid }, 'AUTH-CTRL.VERIFY-ACCOUNT: Found user');
       return user;
     })
     .then((obj) => {
       const user = obj;
 
-      logger.info({ uid: user.uid }, 'AUTH-CTRL.VERIFY-ACCOUNT: Retrieving security questions');
+      logger.info({ uuid: user.uuid }, 'AUTH-CTRL.VERIFY-ACCOUNT: Retrieving security questions');
 
       const query = knex.select('short_name', 'question')
         .from('users_security_questions')
@@ -242,9 +242,15 @@ const verifyAccount = (req, res) =>
         )
         .where({ email: user.email });
 
-      return { uid: user.uid, query };
+      return { uuid: user.uuid, query };
     })
-    .then(({ uid, query }) => query.then(questions => res.json({ data: { uid, questions } })))
+    .then(({ uuid, query }) => {
+      if (config.auth.securityQuestions) {
+        return query.then(questions => res.json({ data: { uuid, questions } }));
+      }
+
+      return res.json({ data: { uuid } });
+    })
     .catch((error) => {
       const err = formatError(error);
 
@@ -277,11 +283,11 @@ const verifySecurityQuestions = (req, res) => {
       'security_questions.id',
       'users_security_questions.question_id',
     )
-    .where({ uid: req.body.uid })
+    .where({ uuid: req.body.uuid })
     .whereIn(['short_name', 'answer'], answers)
     .then(queryResults =>
       knex('users')
-        .where({ uid: req.body.uid })
+        .where({ uuid: req.body.uuid })
         .first()
         .then((user) => {
           if (user && user.account_locked) throw new ApiError(authErrors.ACCOUNT_LOCKED);
@@ -293,11 +299,11 @@ const verifySecurityQuestions = (req, res) => {
 
           if (!isValid) {
             return knex('users')
-              .where({ uid: user.uid })
+              .where({ uuid: user.uuid })
               .increment('security_question_attempts', 1)
               .then(() =>
                 knex('users')
-                  .where({ uid: user.uid })
+                  .where({ uuid: user.uuid })
                   .first()
                   .then(updatedUser =>
                     User.checkForLockedAccount(updatedUser)))
@@ -340,7 +346,7 @@ const verifySecurityQuestions = (req, res) => {
             expiresField = 'unlock_account_expires';
           }
 
-          logger.info({ uid: user.uid, verificationType },
+          logger.info({ uuid: user.uuid, verificationType },
             'AUTH-CTRL.VERIFY-QUESTIONS: Creating verification code code');
 
           return User.update(user, {
@@ -358,7 +364,7 @@ const verifySecurityQuestions = (req, res) => {
 
           return mailer.send(updatedUser, emailOpts[emailType]);
         })
-        .then(({ user }) => res.json({ data: { user: { uid: user.uid } } }))
+        .then(({ user }) => res.json({ data: { user: { uuid: user.uuid } } }))
         .catch((error) => {
           const err = formatError(error);
 
@@ -394,7 +400,7 @@ const resetPassword = (req, res) =>
     .then((obj) => {
       const user = obj;
 
-      logger.info({ uid: user.uid }, 'AUTH-CTRL.RESET-PASSWORD: Updating user attributes');
+      logger.info({ uuid: user.uuid }, 'AUTH-CTRL.RESET-PASSWORD: Updating user attributes');
       return User.comparePassword(user, req.body.password);
     })
     .then(({ isMatch, user }) => {
@@ -422,10 +428,10 @@ const resetPassword = (req, res) =>
     })
     .then((updatedUser) => {
       logger.info({
-        uid: updatedUser.uid,
+        uuid: updatedUser.uuid,
       }, 'AUTH-CTRL.RESET-PASSWORD: User password has been reset');
 
-      return res.json({ data: { user: { uid: updatedUser.uid } } });
+      return res.json({ data: { user: { uuid: updatedUser.uuid } } });
     })
     .catch((error) => {
       const err = formatError(error);
@@ -455,7 +461,7 @@ const unlockAccount = (req, res) =>
         throw new ApiError(authErrors.INVALID_TOKEN(user, 'unlock account'));
       }
 
-      logger.info({ uid: user.uid }, 'AUTH-CTRL.UNLOCK-ACCOUNT: Unlocking user\'s account');
+      logger.info({ uuid: user.uuid }, 'AUTH-CTRL.UNLOCK-ACCOUNT: Unlocking user\'s account');
 
       return User.update(user, {
         account_locked: false,
@@ -465,8 +471,8 @@ const unlockAccount = (req, res) =>
       });
     })
     .then((updatedUser) => {
-      logger.info({ uid: updatedUser.uid }, 'AUTH-CTRL.UNLOCK-ACCOUNT: Account was unlocked');
-      return res.json({ data: { user: { uid: updatedUser.uid } } });
+      logger.info({ uuid: updatedUser.uuid }, 'AUTH-CTRL.UNLOCK-ACCOUNT: Account was unlocked');
+      return res.json({ data: { user: { uuid: updatedUser.uuid } } });
     })
     .catch((error) => {
       const err = formatError(error);
@@ -493,7 +499,7 @@ const resendConfirmation = (req, res) =>
         throw new ApiError(authErrors.INVALID_USER_OR_CONFIRMED(user));
       }
 
-      logger.info({ uid: user.uid }, 'AUTH-CTRL.RECONFIRM: Creating confirm account token');
+      logger.info({ uuid: user.uuid }, 'AUTH-CTRL.RECONFIRM: Creating confirm account token');
 
       return User.update(user, {
         confirmed_token: md5(user.email + Math.random()),
@@ -505,7 +511,7 @@ const resendConfirmation = (req, res) =>
         throw new ApiError(authErrors.INVALID_USER_OR_CONFIRMED(user));
       }
 
-      logger.info({ uid: user.uid }, 'AUTH-CTRL.RECONFIRM: Resending email for confirmation');
+      logger.info({ uuid: user.uuid }, 'AUTH-CTRL.RECONFIRM: Resending email for confirmation');
       return mailer.send(user, emailOpts.CONFIRMATION_EMAIL);
     })
     .then(() => res.json({ data: null }))
@@ -534,7 +540,7 @@ const resendUnlockAccount = (req, res) =>
         throw new ApiError(authErrors.INVALID_USER_OR_ACCOUNT_NOT_LOCKED(user));
       }
 
-      logger.info({ uid: user.uid }, 'AUTH-CTRL.REUNLOCK: Creating unlock account token');
+      logger.info({ uuid: user.uuid }, 'AUTH-CTRL.REUNLOCK: Creating unlock account token');
 
       return User.update(user, {
         unlock_account_code: generateCode(),
@@ -542,7 +548,7 @@ const resendUnlockAccount = (req, res) =>
       });
     })
     .then((user) => {
-      logger.info({ uid: user.uid }, 'AUTH-CTRL.REUNLOCK: Resending email to unlock account');
+      logger.info({ uuid: user.uuid }, 'AUTH-CTRL.REUNLOCK: Resending email to unlock account');
       return mailer.send(user, emailOpts.UNLOCK_ACCOUNT_EMAIL);
     })
     .then(() => res.json({ data: null }))
